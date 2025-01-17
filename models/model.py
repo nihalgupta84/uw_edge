@@ -7,6 +7,7 @@ import torch.nn.functional as F
 from einops import rearrange
 from numpy.random import RandomState
 from scipy.stats import chi
+from torchinfo import summary
 
 
 class FeatureContextualizer(nn.Module):
@@ -1210,6 +1211,22 @@ class Model(nn.Module):
 
         return out
 
+def test_model():
+    model = Model().to('cuda')
+    inp = torch.randn(1, 3, 256, 256).to('cuda')
+    print("Model Summary:")
+    summary(model, input_size=(1, 3, 256, 256))
+
+    # Forward pass to print shapes
+    print("\nForward Pass Shapes:")
+    illum_prior = model.prior(inp)
+    print(f"ColorBalancePrior output shape: {illum_prior.shape}")
+
+    re_out = model.re(inp, illum_prior)
+    print(f"PriorGuidedRE output shape: {re_out.shape}")
+
+    final_out = model(inp)
+    print(f"Model final output shape: {final_out.shape}")
 
 if __name__ == '__main__':
     from thop import profile
@@ -1219,3 +1236,4 @@ if __name__ == '__main__':
     macs, params = profile(model, inputs=(inp,))
     macs, params = clever_format([macs, params], "%.3f")
     print(macs, params)
+    test_model()

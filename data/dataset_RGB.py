@@ -6,7 +6,10 @@ import torchvision.transforms.functional as F
 from PIL import Image
 from torch.utils.data import Dataset
 import random
+import warnings
 
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 def is_image_file(filename):
     return any(filename.endswith(extension) for extension in ['jpeg', 'JPEG', 'jpg', 'png', 'JPG', 'PNG', 'gif'])
@@ -14,7 +17,7 @@ def is_image_file(filename):
 
 # DataReader without Reference/Target/Labeled Sample
 class NonRefDataReader(Dataset):
-    def __init__(self, img_dir, inp='input', mode='train', ori=False, img_options=None):
+    def __init__(self, img_dir, inp='raw', mode='train', ori=False, img_options=None):
         super(NonRefDataReader, self).__init__()
 
         inp_files = sorted(os.listdir(os.path.join(img_dir, inp)))
@@ -120,7 +123,7 @@ class NonRefDataReader(Dataset):
 
 
 class DataReader(Dataset):
-    def __init__(self, img_dir, inp='input', tar='target', mode='train', ori=False, img_options=None):
+    def __init__(self, img_dir, inp='raw', tar='ref', mode='train', ori=False, img_options=None):
         super(DataReader, self).__init__()
 
         inp_files = sorted(os.listdir(os.path.join(img_dir, inp)))

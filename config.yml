@@ -1,18 +1,18 @@
 VERBOSE: True
 
 MODEL:
-  SESSION: 'uw'
-  INPUT: 'input'
-  TARGET: 'target'
+  SESSION: 't01'
+  INPUT: 'raw'
+  TARGET: 'ref'
 
 # Optimization arguments.
 OPTIM:
-  BATCH_SIZE: 16
+  BATCH_SIZE: 5
   NUM_EPOCHS: 300
   LR_INITIAL: 2e-4
   LR_MIN: 1e-6
   SEED: 3407
-  WANDB: False
+  WANDB: True
 
 TRAINING:
   VAL_AFTER_EVERY: 1
@@ -20,20 +20,20 @@ TRAINING:
   WEIGHT: ''
   PS_W: 256
   PS_H: 256
-  TRAIN_DIR: '' # path to training data
-  VAL_DIR: ''     # path to validation data
-  SAVE_DIR: ''          # path to save models
+  TRAIN_DIR: './image_dirs/UIEB/train' # path to training data
+  VAL_DIR: './image_dirs/UIEB/val'     # path to validation data
+  SAVE_DIR: './checkpoints'  # Ensure this path is valid and not empty
   ORI: False
-  LOG_FILE: ''
+  LOG_FILE: 'log.txt'  # Ensure this is not empty
 
 TESTING:
-  INPUT: 'input'
-  TARGET: 'target'
+  INPUT: 'raw'
+  TARGET: 'ref'
   VAL_DIR: ''     # path to testing data
   WEIGHT: ''
   SAVE_IMAGES: True
   RESULT_DIR: ''
-  LOG_FILE: ''
+  LOG_FILE: 't01.txt'
 
 LOG:
-  LOG_DIR: ''
+  LOG_DIR: './log'  # Ensure this path is valid and not empty

@@ -60,11 +60,11 @@ class Config(object):
 
         self._C.MODEL = CN()
         self._C.MODEL.SESSION = 'UW'
-        self._C.MODEL.INPUT = 'input'
-        self._C.MODEL.TARGET = 'target'
+        self._C.MODEL.INPUT = 'raw'
+        self._C.MODEL.TARGET = 'ref'
 
         self._C.OPTIM = CN()
-        self._C.OPTIM.BATCH_SIZE = 1
+        self._C.OPTIM.BATCH_SIZE = 4
         self._C.OPTIM.SEED = 3407
         self._C.OPTIM.NUM_EPOCHS = 300
         self._C.OPTIM.NEPOCH_DECAY = [100]
@@ -77,18 +77,18 @@ class Config(object):
         self._C.TRAINING.VAL_AFTER_EVERY = 3
         self._C.TRAINING.RESUME = False
         self._C.TRAINING.WEIGHT = None
-        self._C.TRAINING.TRAIN_DIR = 'images_dir/train'
-        self._C.TRAINING.VAL_DIR = 'images_dir/val'
-        self._C.TRAINING.SAVE_DIR = 'checkpoints'
+        self._C.TRAINING.TRAIN_DIR = './image_dirs/EVUP/train'
+        self._C.TRAINING.VAL_DIR = './image_dirs/EVUP/val'
+        self._C.TRAINING.SAVE_DIR = 'checkpoints'  # Ensure this path is valid
         self._C.TRAINING.PS_W = 512
         self._C.TRAINING.PS_H = 512
         self._C.TRAINING.ORI = False
         self._C.TRAINING.LOG_FILE = 'log.txt'
 
         self._C.TESTING = CN()
-        self._C.TESTING.INPUT = 'input'
-        self._C.TESTING.TARGET = 'target'
-        self._C.TESTING.VAL_DIR = 'images_dir/test'
+        self._C.TESTING.INPUT = 'raw'  # Update to 'raw'
+        self._C.TESTING.TARGET = 'ref'  # Update to 'ref'
+        self._C.TESTING.VAL_DIR = 'image_dirs/EVUP/val'
         self._C.TESTING.WEIGHT = None
         self._C.TESTING.SAVE_IMAGES = True
         self._C.TESTING.RESULT_DIR = 'result'
