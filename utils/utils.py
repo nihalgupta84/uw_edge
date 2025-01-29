@@ -30,11 +30,11 @@ def seed_everything(seed=3407):
 def save_checkpoint(state, epoch, model_name, outdir):
     if not os.path.exists(outdir):
         os.makedirs(outdir)
-    checkpoint_file = os.path.join(outdir, model_name + '_' + 'epoch_' + str(epoch) + '.pth')
+    checkpoint_file = os.path.join(outdir, f"{model_name}_epoch_{epoch}.pth")
     torch.save(state, checkpoint_file)
 
 
-def load_checkpoint(model, weights):
+def load_checkpoint(model, optimizer, scheduler, weights):
     checkpoint = torch.load(weights, map_location=lambda storage, loc: storage.cuda(0))
     new_state_dict = OrderedDict()
     for key, value in checkpoint['state_dict'].items():
@@ -44,4 +44,17 @@ def load_checkpoint(model, weights):
             name = key
         new_state_dict[name] = value
     model.load_state_dict(new_state_dict)
+    
+    # Load optimizer and scheduler states
+    if 'optimizer' in checkpoint and 'scheduler' in checkpoint:
+        optimizer.load_state_dict(checkpoint['optimizer'])
+        scheduler.load_state_dict(checkpoint['scheduler'])
+    
+    # Load best metrics
+    best_psnr = checkpoint.get('best_psnr', 0)
+    best_epoch = checkpoint.get('best_epoch', 1)
+    
+    # Extract epoch number
+    epoch = int(os.path.basename(weights).split('_epoch_')[-1].split('.pth')[0])
+    return epoch, best_psnr, best_epoch
 

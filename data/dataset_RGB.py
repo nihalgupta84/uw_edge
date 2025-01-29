@@ -37,7 +37,9 @@ class NonRefDataReader(Dataset):
                 A.Rotate(p=0.3),
                 A.Transpose(p=0.3),
                 A.RandomResizedCrop(height=img_options['h'], width=img_options['w']),
-            ])
+            ],
+                is_check_shapes=False
+            )
             self.degrade = A.Compose([
                 # A.ColorJitter(),
                 # A.RGBShift(),
@@ -47,11 +49,15 @@ class NonRefDataReader(Dataset):
             if ori:
                 self.transform = A.Compose([
                     A.NoOp(),
-                ])
+                ],
+                    is_check_shapes=False
+                )
             else:
                 self.transform = A.Compose([
                     A.Resize(height=img_options['h'], width=img_options['w']),
-                ])
+                ],
+                    is_check_shapes=False
+                )
             self.degrade = A.Compose([
                 A.NoOp(),
             ])
@@ -148,7 +154,8 @@ class DataReader(Dataset):
             ],
                 additional_targets={
                     'target': 'image',
-                }
+                },
+                is_check_shapes=False
             )
             self.degrade = A.Compose([
                 # A.ColorJitter(),
@@ -162,7 +169,8 @@ class DataReader(Dataset):
                 ],
                     additional_targets={
                         'target': 'image',
-                    }
+                    },
+                    is_check_shapes=False
                 )
             else:
                 self.transform = A.Compose([
@@ -170,7 +178,8 @@ class DataReader(Dataset):
                 ],
                     additional_targets={
                         'target': 'image',
-                    }
+                    },
+                    is_check_shapes=False
                 )
             self.degrade = A.Compose([
                 A.NoOp(),

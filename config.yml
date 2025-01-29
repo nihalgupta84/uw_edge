@@ -1,13 +1,13 @@
 VERBOSE: True
 
 MODEL:
-  SESSION: 't01'
+  SESSION: 'evup'
   INPUT: 'raw'
   TARGET: 'ref'
 
 # Optimization arguments.
 OPTIM:
-  BATCH_SIZE: 5
+  BATCH_SIZE: 24
   NUM_EPOCHS: 300
   LR_INITIAL: 2e-4
   LR_MIN: 1e-6
@@ -20,8 +20,8 @@ TRAINING:
   WEIGHT: ''
   PS_W: 256
   PS_H: 256
-  TRAIN_DIR: './image_dirs/UIEB/train' # path to training data
-  VAL_DIR: './image_dirs/UIEB/val'     # path to validation data
+  TRAIN_DIR: './image_dirs/EVUP/train' # path to training data
+  VAL_DIR: './image_dirs/EVUP/val'     # path to validation data
   SAVE_DIR: './checkpoints'  # Ensure this path is valid and not empty
   ORI: False
   LOG_FILE: 'log.txt'  # Ensure this is not empty
@@ -37,3 +37,13 @@ TESTING:
 
 LOG:
   LOG_DIR: './log'  # Ensure this path is valid and not empty
+
+LOSSES:
+  USE_PSNR: True
+  PSNR_SCALE: 1.0
+  USE_SSIM: True
+  SSIM_SCALE: 0.3
+  USE_LPIPS: True
+  LPIPS_SCALE: 0.7
+  USE_EDGE: True
+  EDGE_SCALE: 0.1

@@ -8,7 +8,7 @@ Created on Tue Jul 23 14:35:48 2019
 
 r"""This module provides package-wide configuration management."""
 from typing import Any, List
-
+import os
 from yacs.config import CfgNode as CN
 
 
@@ -55,6 +55,8 @@ class Config(object):
 
     def __init__(self, config_yaml: str, config_override: List[Any] = []):
         self._C = CN()
+        self._C.WANDB = CN()
+        self._C.WANDB.NAME = 'evup_01'
         self._C.GPU = [0]
         self._C.VERBOSE = False
 
@@ -96,13 +98,23 @@ class Config(object):
 
         self._C.LOG = CN()
         self._C.LOG.LOG_DIR = 'output_dir'
-
+        # Losses block
+        self._C.LOSSES = CN()
+        self._C.LOSSES.USE_PSNR = True
+        self._C.LOSSES.PSNR_SCALE = 1.0
+        self._C.LOSSES.USE_SSIM = True
+        self._C.LOSSES.SSIM_SCALE = 0.3
+        self._C.LOSSES.USE_LPIPS = True
+        self._C.LOSSES.LPIPS_SCALE = 0.7
+        self._C.LOSSES.USE_EDGE = True
+        self._C.LOSSES.EDGE_SCALE = 0.1
+        
         # Override parameter values from YAML file first, then from override list.
         self._C.merge_from_file(config_yaml)
         self._C.merge_from_list(config_override)
 
         # Make an instantiated object of this class immutable.
-        self._C.freeze()
+        # self._C.freeze()
 
     def dump(self, file_path: str):
         r"""Save config at the specified file path.
@@ -119,3 +131,11 @@ class Config(object):
 
     def __repr__(self):
         return self._C.__repr__()
+    
+    def finalize_config(self):
+        if self._C.WANDB.NAME:
+            # Append WANDB.NAME to SAVE_DIR
+            self._C.TRAINING.SAVE_DIR = os.path.join(self._C.TRAINING.SAVE_DIR, self._C.WANDB.NAME)
+            # Use WANDB.NAME for LOG_FILE
+            self._C.TRAINING.LOG_FILE = f"log_{self._C.WANDB.NAME}.txt"
+            self._C.LOG.LOG_DIR = os.path.join(self._C.LOG.LOG_DIR, self._C.WANDB.NAME)

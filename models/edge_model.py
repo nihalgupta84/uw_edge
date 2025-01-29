@@ -358,12 +358,12 @@ class EdgeModel(nn.Module):
     to maintain compatibility with HRNet.py usage:
         featrueHR, hazeRemoval = self.hfBranch(input)
     """
-    def __init__(self, in_channels=3, base_channels=32):
+    def __init__(self, in_channels=3, base_channels=64):
         super(EdgeModel, self).__init__()
         # Instantiating our new backbone
         self.ch_in = 3
         self.down_depth = 2        
-        self.backbone = SCBackbone(in_ch=self.ch_in, base_ch=32)
+        self.backbone = SCBackbone(in_ch=self.ch_in, base_ch=64)
 
     def forward(self, input):
         """

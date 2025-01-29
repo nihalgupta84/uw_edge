@@ -1,8 +1,8 @@
 /checkpoints
 /image_dirs
 /log
-/license
-/READEM.md
+license
+READEM.md
 /wandb
 
 # Byte-compiled / optimized / DLL files
