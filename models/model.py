@@ -1,5 +1,6 @@
-import numbers
+#File: models/model.py (state of the art model)
 
+import numbers
 import numpy as np
 import torch
 import torch.nn as nn
@@ -1211,9 +1212,13 @@ class Model(nn.Module):
 
         return out
 
+
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 def test_model():
-    model = Model().to('cuda')
-    inp = torch.randn(1, 3, 256, 256).to('cuda')
+    model = Model().to(device)
+    inp = torch.randn(1, 3, 256, 256).to(device)
     print("Model Summary:")
     summary(model, input_size=(1, 3, 256, 256))
 
@@ -1229,11 +1234,55 @@ def test_model():
     print(f"Model final output shape: {final_out.shape}")
 
 if __name__ == '__main__':
-    from thop import profile
-    from thop import clever_format
-    inp = torch.randn(1, 3, 256, 256)
-    model = Model()
+    from thop import profile, clever_format
+    inp = torch.randn(1, 3, 256, 256).to(device)
+    model = Model().to(device)
     macs, params = profile(model, inputs=(inp,))
     macs, params = clever_format([macs, params], "%.3f")
-    print(macs, params)
+    print(f"MACs: {macs}, Params: {params}")
     test_model()
+
+def test_shape_and_range(model):
+    """
+    Test that:
+      - The output shape matches the input shape in (H,W).
+      - The output range is within [0,1] if using Sigmoid.
+    """
+    print("Test: Shape & Range")
+    model.eval()
+    resolutions = [128, 256, 512]
+    for res in resolutions:
+        x = torch.randn(1, 3, res, res, device=device)
+        with torch.no_grad():
+            y = model(x)
+        assert y.shape == x.shape, f"Mismatch: input {x.shape}, output {y.shape}"
+        assert torch.all(y >= 0) and torch.all(y <= 1), f"Output values are outside [0,1], got min={y.min().item():.3f} max={y.max().item():.3f}"
+    print("✓ test_shape_and_range passed.")
+
+def test_model_summary(model):
+    """
+    Prints a summary of model layers & parameter counts.
+    """
+    print("Test: Model Summary")
+    model.eval()
+    info = summary(model, input_size=(1, 3, 256, 256), verbose=0)
+    print(info)
+    print("✓ test_model_summary done.")
+
+def run_all_tests():
+    """
+    Runs each test in succession.
+    """
+    print("=== Running Tests on Model ===\n")
+    model = Model().to(device)
+
+    # Test 1: Basic shape & range
+    test_shape_and_range(model)
+
+    # Test 2: Model summary
+    test_model_summary(model)
+
+    print("\nAll tests completed!\n")
+
+if __name__ == "__main__":
+    run_all_tests()
