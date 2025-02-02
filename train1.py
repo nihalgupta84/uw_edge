@@ -38,7 +38,7 @@ from data import get_data
 from metrics.uciqe import batch_uciqe
 from metrics.uiqm import batch_uiqm
 from models.wavelet_model_v2 import WaveletModel
-from utils.utils import (
+from utils.utils1 import (
     seed_everything, load_checkpoint, save_checkpoints
 )
 from models.version_3 import Version3
