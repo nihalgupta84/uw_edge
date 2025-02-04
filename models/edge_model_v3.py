@@ -324,3 +324,4 @@ def test_edge_model_v3():
 if __name__ == "__main__":
     test_edge_model_v3()
 
+3
