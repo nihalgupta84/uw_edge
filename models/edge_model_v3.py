@@ -258,6 +258,12 @@ def check_nan(x, msg):
     if torch.isnan(x).any():
         print(f"[NaN Alert] in {msg}")
     return x
+
+def init_weights(m):
+    if isinstance(m, nn.Conv2d):
+        nn.init.kaiming_normal_(m.weight, mode='fan_out')
+        if m.bias is not None:
+            nn.init.zeros_(m.bias)
 ###############################################################################
 # 6) ProposedReflectionSOTA Model
 ###############################################################################
@@ -289,7 +295,7 @@ class EdgeModel_V3(nn.Module):
             nn.Conv2d(ch_in + ch_out_fc, ch_in, kernel_size=3, padding=1),
             nn.Sigmoid()
         )
-
+        self.apply(init_weights)
     def forward(self, x):
         """
         1) optional color prior
@@ -297,13 +303,16 @@ class EdgeModel_V3(nn.Module):
         3) reflection-based detail restorer =>(B,ch, H,W)
         4) final fusion =>(B,ch_in,H,W)
         """
-
-        prior = self.color_prior(x)  # (B,3,H,W)
-        fc_out = self.fc(x, prior)  # =>(B,ch_out_fc,H,W)
-        dr_out = self.dr(x)         # =>(B,ch_in,H,W)
+        prior = check_nan(self.color_prior(x), "ColorPrior")
+        # prior = self.color_prior(x)  # (B,3,H,W)
+        fc_out = check_nan(self.fc(x, prior), "FeatureContextualizer")
+        # fc_out = self.fc(x, prior)  # =>(B,ch_out_fc,H,W)
+        dr_out = check_nan(self.dr(x), "DetailRestorer")
+        # dr_out = self.dr(x)         # =>(B,ch_in,H,W)
 
         cat = torch.cat([fc_out, dr_out], dim=1)  # =>(B, ch_out_fc + ch_in, H,W)
-        out = self.final(cat)                     # =>(B,ch_in,H,W)
+        out = check_nan(self.final(cat), "FinalConv")
+        # out = self.final(cat)                     # =>(B,ch_in,H,W)
         return out
 
 

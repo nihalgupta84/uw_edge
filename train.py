@@ -172,7 +172,7 @@ def log_model_details(model, log_file_path, config_dict=None, input_size=None):
         f"Trainable Parameters: {trainable_count:,}\n"
     )
 
-    with open(log_file_path, 'w', encoding='utf-8') as f:
+    with open(log_file_path, 'a', encoding='utf-8') as f:
         f.write(full_summary)
         if config_dict:
             f.write("\nTraining Configuration:\n")
@@ -250,12 +250,17 @@ def train():
     # Create the log directory and log the command line and config.
     log_file_path = os.path.join(opt.LOG.LOG_DIR, opt.TRAINING.LOG_FILE)
     os.makedirs(opt.LOG.LOG_DIR, exist_ok=True)
+    
+    # Changed this part to properly handle file mode based on resume flag
     file_mode = 'a' if opt.TRAINING.RESUME else 'w'
     with open(log_file_path, file_mode, encoding='utf-8') as f:
+        f.write("\n" + "="*50 + "\n")  # Add separator for better readability
+        f.write(f"{'RESUMED' if opt.TRAINING.RESUME else 'NEW'} TRAINING SESSION: {datetime.datetime.now()}\n")
         f.write("Command line: " + " ".join(sys.argv) + "\n")
         f.write("Configuration:\n")
         f.write(str(opt))
-        f.write("\n")
+        f.write("\n" + "="*50 + "\n")
+
     # 2) Reproducibility
     seed_everything(opt.OPTIM.SEED)
 

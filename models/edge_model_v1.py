@@ -261,7 +261,11 @@ class SCEncoderBlock(nn.Module):
         out = out + skip
 
         return out
-
+def init_weights(m):
+    if isinstance(m, nn.Conv2d):
+        nn.init.kaiming_normal_(m.weight, mode='fan_out')
+        if m.bias is not None:
+            nn.init.zeros_(m.bias)
 
 ########################################################################
 # 5. SCBackbone
@@ -313,7 +317,8 @@ class SCBackbone(nn.Module):
             nn.Conv2d(base_ch, in_ch, kernel_size=3, padding=1),
             nn.Sigmoid()
         )
-
+        self.apply(init_weights)
+        
     def forward(self, x):
         """
         Return: (featrueHR, finalImage)

@@ -391,6 +391,12 @@ class SCDecoderBlock(nn.Module):
 #   7) decoder2 =>(B,128,H/2,W/2)
 #   8) decoder1 =>(B,64,H,W)
 #   9) final =>(B,3,H,W)
+
+def init_weights(m):
+    if isinstance(m, nn.Conv2d):
+        nn.init.kaiming_normal_(m.weight, mode='fan_out')
+        if m.bias is not None:
+            nn.init.zeros_(m.bias)
 ###############################################################################
 class SCBackbone(nn.Module):
     def __init__(self, in_ch=3, base_ch=64):
@@ -438,7 +444,7 @@ class SCBackbone(nn.Module):
             ReflectionPaddingConv(base_ch, in_ch, kernel_size=3),
             nn.Sigmoid()
         )
-
+        self.apply(init_weights)
     def forward(self, x):
         """
         Example shape flow if input is (B,3,H,W):
