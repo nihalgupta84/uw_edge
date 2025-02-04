@@ -6,6 +6,11 @@ READEM.md
 /wandb
 /.vscode
 .vscode/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -177,3 +182,13 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Weights & Biases
+wandb/
+.wandb
+*.wandb
+wandb_api_key.txt
+.env.wandb
+eel
+# Weights & Biases API Key
+WANDB_API_KEY.env
