@@ -280,12 +280,15 @@ def train():
     
     if accelerator.is_local_main_process:
         try:
+            # Create a combined name using dataset and session
+            run_name = f"{opt.MODEL.DATASET_NAME}_{opt.MODEL.SESSION}"
+            
             if is_online():
                 print("Internet detected, using wandb online mode.")
                 wandb.init(
                     project=f'{opt.MODEL.NAME}_underwater',
                     config=cfg_to_dict(opt),
-                    name=opt.MODEL.SESSION,
+                    name=run_name,  # Use the combined name here
                     id = run_id,
                     resume='must' if run_id is not None else 'allow'
                 )
@@ -294,7 +297,7 @@ def train():
                 wandb.init(
                     project=f'{opt.MODEL.NAME}_underwater',
                     config=cfg_to_dict(opt),
-                    name=opt.MODEL.SESSION,
+                    name=run_name,  # And here
                     mode='offline'
                 )
         except wandb.errors.CommError:
