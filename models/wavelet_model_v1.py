@@ -1139,14 +1139,14 @@ class FinalScaleShift(nn.Module):
 #########################################
 # 7) Final Model: "FinalUnderwaterEnhancer"
 #########################################
-class WaveletModel(nn.Module):
+class WaveletModel_V1(nn.Module):
     def __init__(self,
                  base_ch=32,
                  wavelet='haar',
                  use_subband_attn=True,
                  use_fft_branch=True,
                  deeper_detail=True):
-        super(WaveletModel, self).__init__()
+        super(WaveletModel_V1, self).__init__()
 
         assert base_ch % 4 == 0, "base_ch must be multiple of 4 for quaternion convs"
         self.base_ch = base_ch
@@ -1264,7 +1264,7 @@ class WaveletModel(nn.Module):
         # # # y2.shape = > (B,64,H,W)
 
         # # 5) detail => (B,base_ch,H,W)
-        detail_out = self.detail_restorer(y1)
+        detail_out = self.detail_restorer(y2)
         print("Detail restoration output shape/mean/standard deviation in wavelet model:", detail_out.shape, detail_out.mean().item(), detail_out.std().item())
         # # detail_out.shape = > (B,64,H,W)
 

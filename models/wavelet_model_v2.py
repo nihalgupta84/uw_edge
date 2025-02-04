@@ -1,4 +1,4 @@
-#File: models/wavelet_model_v2.py
+#File: models/version2.py
 
 import torch
 import torch.nn as nn
@@ -536,7 +536,7 @@ def init_weights(m):
             nn.init.zeros_(m.bias)
 
 
-class WaveletModel(nn.Module):
+class WaveletModel_V2(nn.Module):
     def __init__(self,
                  base_ch=32,
                  wavelet='haar',
@@ -587,7 +587,11 @@ class WaveletModel(nn.Module):
         # color:  (B,3,H,W) -> (B, base_ch,H,W) with 1x1
         self.color_reduce = nn.Conv2d(3, base_ch, kernel_size=1, bias=False)
         # wavelet + fft might produce up to (3+3+3+3+6)=18 channels
-        self.spec_reduce = nn.Conv2d(18, base_ch, kernel_size=1, bias=False)
+        self.spec_reduce = nn.Sequential(
+            nn.Conv2d(18, base_ch*2, 3, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(base_ch*2, base_ch, 3, padding=1)
+        )
 
         self.apply(init_weights)
 

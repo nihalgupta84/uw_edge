@@ -1,306 +1,606 @@
+#File: train.py
+
+import os
+os.environ['NO_ALBUMENTATIONS_UPDATE'] = '1'  # Ensure this is set before any other imports
+
 import json
 import warnings
-import os
-
-import time  # Added import for time module
-
-from edge_aware_loss import EdgeAwareLoss  # Added import for EdgeAwareLoss class
-# Suppress Albumentations warnings
-os.environ['NO_ALBUMENTATIONS_UPDATE'] = '1'
 import argparse
+import random
+import sys
+import requests
+import datetime
+import time
+
+import torch
 import torch.optim as optim
-from accelerate import Accelerator
+import torch.nn.functional as F
 from torch import nn
 from torch.utils.data import DataLoader
 
-from torchmetrics.functional import peak_signal_noise_ratio, structural_similarity_index_measure
-from torchmetrics.image.lpip import LearnedPerceptualImagePatchSimilarity
+from accelerate import Accelerator
 from tqdm import tqdm
+import wandb
+from torchinfo import summary  # For detailed model summary
 
-# from config import Config
+# Torchmetrics
+from torchmetrics.functional import (
+    peak_signal_noise_ratio,
+    structural_similarity_index_measure
+)
+from torchmetrics.image.lpip import LearnedPerceptualImagePatchSimilarity
+
+# Local Project Imports
+from config import Config
 from data import get_data
-from config.config import Config
 from metrics.uciqe import batch_uciqe
 from metrics.uiqm import batch_uiqm
+from models import create_model
+from utils.utils import (
+    seed_everything, load_checkpoint, save_checkpoints
+)
+# (If additional model versions are needed, ensure they are imported in models/__init__.py)
 
-from torchsampler import ImbalancedDatasetSampler
+# Suppress specific warnings
+warnings.filterwarnings('ignore', category=UserWarning)  # Suppress UserWarnings
 
-from models import *
-from models.edge_model import EdgeModel
-from utils import *
-import wandb
-import requests
-import random
-from torchvision.utils import save_image
 
-warnings.filterwarnings('ignore')
-def is_online():
+def is_online() -> bool:
+    """
+    Check for internet connectivity by pinging Google.
+    Returns True if status code 200 is returned, else False.
+    """
     try:
-        # Attempt to connect to a reliable website
-        response = requests.get('https://www.google.com', timeout=5)
-        return True if response.status_code == 200 else False
+        response = requests.get("https://www.google.com", timeout=5)
+        return (response.status_code == 200)
     except requests.ConnectionError:
         return False
-    
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--config_yaml', type=str, default='config.yml')
-    parser.add_argument('--resume', action='store_true')  # Change to action flag
-    parser.add_argument('config_override', nargs='*')
+
+def edge_preservation_loss(predicted: torch.Tensor,
+                           target: torch.Tensor,
+                           device: str='cuda') -> torch.Tensor:
+    """
+    Use Sobel operators to compute difference in edges
+    between predicted and target images.
+
+    Returns a scalar L1 loss between their gradient magnitudes.
+    """
+    sobel_x = torch.tensor([[-1, 0, 1],
+                            [-2, 0, 2],
+                            [-1, 0, 1]],
+                           dtype=torch.float32, device=device).view(1, 1, 3, 3)
+    sobel_y = torch.tensor([[-1, -2, -1],
+                            [ 0,  0,  0],
+                            [ 1,  2,  1]],
+                           dtype=torch.float32, device=device).view(1, 1, 3, 3)
+
+    loss_val = 0.0
+    for c in range(predicted.shape[1]):
+        pred_ch = predicted[:, c:c+1, :, :]
+        targ_ch = target[:, c:c+1, :, :]
+
+        pred_grad_x = F.conv2d(pred_ch, sobel_x, padding=1)
+        pred_grad_y = F.conv2d(pred_ch, sobel_y, padding=1)
+        targ_grad_x = F.conv2d(targ_ch, sobel_x, padding=1)
+        targ_grad_y = F.conv2d(targ_ch, sobel_y, padding=1)
+
+        pred_grad_mag = torch.sqrt(pred_grad_x**2 + pred_grad_y**2 + 1e-6)
+        targ_grad_mag = torch.sqrt(targ_grad_x**2 + targ_grad_y**2 + 1e-6)
+        loss_val += F.l1_loss(pred_grad_mag, targ_grad_mag)
+
+    return loss_val / predicted.shape[1]
+
+
+def frequency_domain_loss(predicted: torch.Tensor,
+                          target: torch.Tensor) -> torch.Tensor:
+    """
+    Compare FFT magnitudes to encourage better frequency alignment.
+    Returns MSE of magnitude difference.
+    """
+    pred_fft = torch.fft.fft2(predicted, dim=(-2, -1))
+    targ_fft = torch.fft.fft2(target, dim=(-2, -1))
+
+    pred_mag = torch.abs(pred_fft)
+    targ_mag = torch.abs(targ_fft)
+
+    return F.mse_loss(pred_mag, targ_mag)
+
+
+def combined_loss(predicted: torch.Tensor,
+                  target: torch.Tensor,
+                  lambda_psnr: float = 1.0,
+                  lambda_ssim: float = 0.3,
+                  lambda_lpips: float = 0.7,
+                  lambda_edge: float = 0.1,
+                  lambda_freq: float = 0.05,
+                  device: str = 'cuda') -> (torch.Tensor, dict):
+    """
+    Aggregates multiple sub-losses with user-defined scaling.
+    """
+    criterion_psnr = nn.SmoothL1Loss()
+    criterion_lpips = LearnedPerceptualImagePatchSimilarity(net_type='alex', normalize=True).to(device)
+
+    loss_psnr = criterion_psnr(predicted, target)
+    loss_ssim = 1.0 - structural_similarity_index_measure(predicted, target, data_range=1.0)
+    loss_lpips = criterion_lpips(predicted, target)
+    loss_edge = edge_preservation_loss(predicted, target, device=device)
+    loss_freq = frequency_domain_loss(predicted, target)
+
+    total = (lambda_psnr * loss_psnr +
+             lambda_ssim * loss_ssim +
+             lambda_lpips * loss_lpips +
+             lambda_edge * loss_edge +
+             lambda_freq * loss_freq)
+
+    losses_dict = {
+        "Total_Loss": total.item(),
+        "PSNR_Loss": loss_psnr.item(),
+        "SSIM_Loss": loss_ssim.item(),
+        "LPIPS_Loss": loss_lpips.item(),
+        "Edge_Loss": loss_edge.item(),
+        "Freq_Loss": loss_freq.item()
+    }
+    return total, losses_dict
+
+
+def log_model_details(model, log_file_path, config_dict=None, input_size=None):
+    """
+    Log detailed model architecture using torchinfo.summary along with parameter counts.
+    If an input_size is provided, use torchinfo.summary for a detailed summary.
+    Also log the training configuration if provided.
+    """
+    try:
+        if input_size is None:
+            # Fallback input size: (batch, channels, height, width)
+            input_size = (1, 3, 256, 256)
+        # Get the detailed model summary using torchinfo
+        model_summary = summary(model, input_size=input_size, verbose=0)
+        summary_str = str(model_summary)
+    except Exception as e:
+        print(f"Warning: torchinfo.summary failed with error: {e}. Using basic model string.")
+        summary_str = str(model)
+    
+    # Also compute parameter counts mathematically
+    param_count = sum(p.numel() for p in model.parameters())
+    trainable_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    
+    full_summary = (
+        f"Model Detailed Summary:\n{'-'*50}\n"
+        f"{summary_str}\n\n"
+        f"Total Parameters: {param_count:,}\n"
+        f"Trainable Parameters: {trainable_count:,}\n"
+    )
+
+    with open(log_file_path, 'w', encoding='utf-8') as f:
+        f.write(full_summary)
+        if config_dict:
+            f.write("\nTraining Configuration:\n")
+            f.write(f"{'-'*50}\n")
+            for key, value in config_dict.items():
+                f.write(f"{key}: {value}\n")
+    return full_summary
+
+
+def log_validation_images(val_dataset, model, device, epoch, num_samples=2):
+    """
+    Log validation images to WandB in a separate section from metrics.
+    """
+    sample_indices = random.sample(range(len(val_dataset)), min(num_samples, len(val_dataset)))
+    table_rows = []
+    
+    for idx in sample_indices:
+        inp_s, tar_s, filename = val_dataset[idx]
+        inp_s = inp_s.unsqueeze(0).to(device)
+        tar_s = tar_s.unsqueeze(0).to(device)
+        
+        with torch.no_grad():
+            out_s = model(inp_s)
+        
+        table_rows.append([
+            wandb.Image(inp_s.cpu().squeeze(0), caption=f"Input - {filename}"),
+            wandb.Image(out_s.cpu().squeeze(0), caption=f"Prediction - {filename}"),
+            wandb.Image(tar_s.cpu().squeeze(0), caption=f"Target - {filename}")
+        ])
+    
+    validation_table = wandb.Table(
+        columns=["Input", "Output", "Expected"],
+        data=table_rows
+    )
+    
+    wandb.log({
+        "Epoch": epoch,
+        "Validation_Images": validation_table
+    })
+def cfg_to_dict(cfg):
+    """
+    Recursively convert a YACS CfgNode (or any dict-like object) into a pure Python dictionary.
+    """
+    if not hasattr(cfg, "items"):
+        return cfg
+    out = {}
+    for k, v in cfg.items():
+        out[k] = cfg_to_dict(v)
+    return out
+
+def train():
+    """
+    Main training function:
+      - Loads the YAML configuration.
+      - Uses key-value overrides from the command line.
+      - Initializes WandB logging (including the configuration and command line).
+      - Logs a detailed model summary at the beginning.
+      - Creates the model using the type specified in the config.
+      - Contains resume logic for training from the latest checkpoint.
+      - Saves checkpoints without redundant directory nesting.
+    """
+    # Simplified argument parser: only allow config file path and overrides.
+    parser = argparse.ArgumentParser(description="Train Script for Underwater Image Enhancement using config file.")
+    parser.add_argument("--config_yaml", type=str, default="config.yml", help="Path to the config YAML file.")
+    parser.add_argument("--resume", action="store_true", help="Flag to resume training from the last checkpoint.")
+    parser.add_argument("config_override", nargs="*", help="Optional config overrides as KEY VALUE pairs.")
     args = parser.parse_args()
+
+    # Load and finalize the configuration.
     config = Config(args.config_yaml, args.config_override)
     config.finalize_config()
-    
-    opt = config  # Use the instantiated config with overrides
-    
+    # For convenience, work directly with the underlying CfgNode.
+    opt = config._C
+
+    # Create the log directory and log the command line and config.
+    log_file_path = os.path.join(opt.LOG.LOG_DIR, opt.TRAINING.LOG_FILE)
+    os.makedirs(opt.LOG.LOG_DIR, exist_ok=True)
+    file_mode = 'a' if opt.TRAINING.RESUME else 'w'
+    with open(log_file_path, file_mode, encoding='utf-8') as f:
+        f.write("Command line: " + " ".join(sys.argv) + "\n")
+        f.write("Configuration:\n")
+        f.write(str(opt))
+        f.write("\n")
+    # 2) Reproducibility
     seed_everything(opt.OPTIM.SEED)
 
-    # Initialize wandb with API key
+    # 3) Create model using the configuration (MODEL.NAME)
+    try:
+        model = create_model(opt.MODEL.NAME)
+    except ValueError as e:
+        print(f"Error creating model: {e}")
+        sys.exit(1)
+
+    # 4) Initialize the accelerator and WandB.
+    accelerator = Accelerator(log_with="wandb", mixed_precision=opt.TRAINING.MIXED_PRECISION)
     wandb.login(key='8d9ec67ac85ce634d875b480fed3604bfb9cb595')
-
-    accelerator = Accelerator(log_with='wandb') if opt.OPTIM.WANDB else Accelerator()
-
-    model = EdgeModel()
+    
+    # Initialize run_id before wandb.init
+    run_id = None
+    
     if accelerator.is_local_main_process:
         try:
             if is_online():
                 print("Internet detected, using wandb online mode.")
                 wandb.init(
-                    project='edge_model',
-                    config=opt,
-                    name=opt.WANDB.NAME,
-                    resume='allow'
+                    project=f'{opt.MODEL.NAME}_underwater',
+                    config=cfg_to_dict(opt),
+                    name=opt.MODEL.SESSION,
+                    id = run_id,
+                    resume='must' if run_id is not None else 'allow'
                 )
             else:
                 print("No internet, using wandb offline mode.")
                 wandb.init(
-                    project='CCHRNET',
-                    config=opt,
-                    name=opt.WANDB.NAME,
+                    project=f'{opt.MODEL.NAME}_underwater',
+                    config=cfg_to_dict(opt),
+                    name=opt.MODEL.SESSION,
                     mode='offline'
                 )
         except wandb.errors.CommError:
             print("WandB initialization failed, using offline mode.")
             wandb.init(mode='offline')
         
-        os.makedirs(opt.TRAINING.SAVE_DIR, exist_ok=True)
-        log_dir = os.path.abspath(opt.LOG.LOG_DIR)
-        os.makedirs(log_dir, exist_ok=True)
+        # NOTE: Do not update SAVE_DIR here because finalize_config() already appended WANDB.NAME.
+
+        # Log additional information into WandB.
+        wandb.config.update({"command_line": " ".join(sys.argv)})
+
+        # Log the detailed model summary using an input size from config.
+        input_size = (1, opt.MODEL.INPUT_CHANNELS, opt.TRAINING.PS_H, opt.TRAINING.PS_W)
+        log_model_details(model, log_file_path, config_dict=cfg_to_dict(opt), input_size=input_size)
 
     device = accelerator.device
 
-    config_dict = {
-        "dataset": opt.TRAINING.TRAIN_DIR
-    }
-    accelerator.init_trackers("UW", config=config_dict)
+    # 5) Create optimizer and scheduler.
+    criterion_lpips = LearnedPerceptualImagePatchSimilarity(net_type='alex', normalize=True).to(device)
+    optimizer = optim.AdamW(model.parameters(), lr=opt.OPTIM.LR_INITIAL, betas=(0.9, 0.999), eps=1e-8)
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=opt.OPTIM.NUM_EPOCHS, eta_min=opt.OPTIM.LR_MIN)
 
-    # Data Loader
-    train_dir = opt.TRAINING.TRAIN_DIR
-    val_dir = opt.TRAINING.VAL_DIR
-
+    # 6) Load data.
     print("Loading training data...")
-    train_dataset = get_data(train_dir, opt.MODEL.INPUT, opt.MODEL.TARGET, 'train', opt.TRAINING.ORI,
-                             {'w': opt.TRAINING.PS_W, 'h': opt.TRAINING.PS_H})
-    trainloader = DataLoader(dataset=train_dataset, batch_size=opt.OPTIM.BATCH_SIZE, shuffle=True, num_workers=4,
-                             drop_last=False, pin_memory=True)
-    print("Training data loaded.")
+    train_dataset = get_data(
+        opt.TRAINING.TRAIN_DIR,
+        opt.MODEL.INPUT,
+        opt.MODEL.TARGET,
+        mode='train',
+        ori=opt.TRAINING.ORI,
+        img_options={"w": opt.TRAINING.PS_W, "h": opt.TRAINING.PS_H}
+    )
+    train_loader = DataLoader(train_dataset, batch_size=opt.OPTIM.BATCH_SIZE, shuffle=True, 
+                              num_workers=4, drop_last=False, pin_memory=True)
+    print(f"Training samples: {len(train_dataset)}")
 
     print("Loading validation data...")
-    val_dataset = get_data(val_dir, opt.MODEL.INPUT, opt.MODEL.TARGET, 'test', opt.TRAINING.ORI,
-                           {'w': opt.TRAINING.PS_W, 'h': opt.TRAINING.PS_H})
-    testloader = DataLoader(dataset=val_dataset, batch_size=1, shuffle=False, num_workers=16, drop_last=False,
-                            pin_memory=True)
-    print("Validation data loaded.")
+    val_dataset = get_data(
+        opt.TRAINING.VAL_DIR,
+        opt.MODEL.INPUT,
+        opt.MODEL.TARGET,
+        mode='test',
+        ori=opt.TRAINING.ORI,
+        img_options={"w": opt.TRAINING.PS_W, "h": opt.TRAINING.PS_H}
+    )
+    val_loader = DataLoader(val_dataset, batch_size=1, shuffle=False, 
+                            num_workers=8, drop_last=False, pin_memory=True)
+    print(f"Validation samples: {len(val_dataset)}")
 
-    # Model & Loss
-    # model = EdgeModel()  # Move model definition before loading checkpoints
+    # 7) Resume logic.
+    start_epoch = 1
+    best_psnr = 0.0
+    best_ssim = 0.0
+    best_loss = float("inf")
+    best_psnr_epoch = 0
+    best_ssim_epoch = 0
+    best_loss_epoch = 0
+    best_uciqe = 0.0
+    best_uiqm = 0.0
+    best_uciqe_epoch = 0
+    best_uiqm_epoch = 0
 
-    criterion_psnr = torch.nn.SmoothL1Loss()
-    criterion_lpips = LearnedPerceptualImagePatchSimilarity(net_type='alex', normalize=True).to(device)
-    edge_criterion = EdgeAwareLoss(loss_weight=0.1)  # Initialize EdgeAwareLoss
-
-    # Optimizer & Scheduler
-    optimizer_b = optim.AdamW(model.parameters(), lr=opt.OPTIM.LR_INITIAL, betas=(0.9, 0.999), eps=1e-8)
-    scheduler_b = optim.lr_scheduler.CosineAnnealingLR(optimizer_b, opt.OPTIM.NUM_EPOCHS, eta_min=opt.OPTIM.LR_MIN)
-
-    trainloader, testloader, model, optimizer_b, scheduler_b = accelerator.prepare(trainloader, testloader, model, optimizer_b, scheduler_b)
-
-    best_epoch = 1
-    best_psnr = 0
-
+    # Use the resume flag from the configuration (or command line override).
     if accelerator.is_local_main_process and opt.TRAINING.RESUME:
-        # Find the latest checkpoint
-        checkpoints = [f for f in os.listdir(opt.TRAINING.SAVE_DIR) if f.endswith('.pth')]
-        if checkpoints:
-            latest_checkpoint = max(
-                checkpoints,
-                key=lambda x: int(x.split('_epoch_')[-1].split('.pth')[0])
-            )
-            checkpoint_path = os.path.join(opt.TRAINING.SAVE_DIR, latest_checkpoint)
-            start_epoch, best_psnr, best_epoch = load_checkpoint(model, optimizer_b, scheduler_b, checkpoint_path)
-            print(f"Loaded checkpoint from {checkpoint_path}, starting from epoch {start_epoch + 1}")
-            start_epoch += 1
+        ckp_dir = opt.TRAINING.SAVE_DIR
+        ckpts = [f for f in os.listdir(ckp_dir) if f.endswith('.pth')]
+        if ckpts:
+            def parse_epoch(fn):
+                tokens = fn.split("epoch_")
+                if len(tokens) < 2:
+                    return -1
+                try:
+                    return int(tokens[-1].split(".pth")[0])
+                except:
+                    return -1
+
+            latest_ckpt = max(ckpts, key=lambda x: parse_epoch(x))
+            ckpt_path = os.path.join(ckp_dir, latest_ckpt)
+            print(f"Resuming from {ckpt_path}")
+            loaded_data = load_checkpoint(model, optimizer, scheduler, ckpt_path, device)
+            run_id = loaded_data.get("wandb_run_id", None)
+            start_epoch = loaded_data["epoch"] + 1
+            best_psnr = loaded_data["best_psnr"]
+            best_ssim = loaded_data["best_ssim"]
+            best_loss = loaded_data["best_loss"]
+            best_psnr_epoch = loaded_data["best_psnr_epoch"]
+            best_ssim_epoch = loaded_data["best_ssim_epoch"]
+            best_loss_epoch = loaded_data["best_loss_epoch"]
+            print(f"Checkpoint loaded. Starting from epoch {start_epoch}")
         else:
-            print("No checkpoints found, starting from epoch 1.")
-            start_epoch = 1
-    else:
-        start_epoch = 1
+            print("No checkpoint found. Starting fresh.")
 
-    size = len(testloader)
+    # 8) Prepare with Accelerator.
+    model, optimizer, scheduler, train_loader, val_loader = accelerator.prepare(
+        model, optimizer, scheduler, train_loader, val_loader
+    )
 
-    # training
+    # 9) Training loop.
+    val_size = len(val_loader)
+    start_time = time.time()  # Start timing the training process
+
+    # Retrieve loss scales from the configuration.
+    scale_psnr = opt.LOSSES.PSNR_SCALE
+    scale_ssim = opt.LOSSES.SSIM_SCALE
+    scale_lpips = opt.LOSSES.LPIPS_SCALE
+    scale_edge = opt.LOSSES.EDGE_SCALE
+    scale_freq = opt.LOSSES.FREQ_SCALE
+
     for epoch in range(start_epoch, opt.OPTIM.NUM_EPOCHS + 1):
         if accelerator.is_local_main_process:
-            print(f"Starting epoch {epoch}...")
+            print(f"\n[Epoch {epoch}/{opt.OPTIM.NUM_EPOCHS}] Starting...")
+
         model.train()
+        for i, data_batch in enumerate(tqdm(train_loader, disable=not accelerator.is_local_main_process)):
+            inp, tar = data_batch[0], data_batch[1]
+            inp, tar = inp.to(device), tar.to(device)
 
-        for iteration, data in enumerate(tqdm(trainloader, disable=not accelerator.is_local_main_process)):
-            inp = data[0].contiguous()
-            tar = data[1]
+            optimizer.zero_grad()
+            pred = model(inp)
 
-            optimizer_b.zero_grad()
-            res = model(inp)
-
-            loss_psnr = criterion_psnr(res, tar)
-            loss_ssim = 1 - structural_similarity_index_measure(res, tar, data_range=1)
-            loss_lpips = criterion_lpips(res, tar)
-            loss_edge = edge_criterion(res, tar)  # Compute edge-aware loss
-
-            # train_loss = loss_psnr + 0.3 * loss_ssim + 0.7 * loss_lpips + loss_edge  # Add edge-aware loss
-            loss_val = 0.0
-            if opt.LOSSES.USE_PSNR:
-                loss_val += opt.LOSSES.PSNR_SCALE * loss_psnr
-            if opt.LOSSES.USE_SSIM:
-                loss_val += opt.LOSSES.SSIM_SCALE * loss_ssim
-            if opt.LOSSES.USE_LPIPS:
-                loss_val += opt.LOSSES.LPIPS_SCALE * loss_lpips
-            if opt.LOSSES.USE_EDGE:
-                loss_val += opt.LOSSES.EDGE_SCALE * loss_edge
-
-            train_loss = loss_val
-            # backward
+            # Compute the combined loss with scaling factors from the config.
+            train_loss, loss_comp = combined_loss(
+                pred, tar,
+                lambda_psnr=scale_psnr,
+                lambda_ssim=scale_ssim,
+                lambda_lpips=scale_lpips,
+                lambda_edge=scale_edge,
+                lambda_freq=scale_freq,
+                device=device
+            )
             accelerator.backward(train_loss)
-            optimizer_b.step()
+
+            # Gradient clipping based on config (if CLIP_GRAD is > 0).
+            if opt.TRAINING.CLIP_GRAD > 0:
+                accelerator.clip_grad_norm_(model.parameters(), max_norm=opt.TRAINING.CLIP_GRAD)
+
+            optimizer.step()
 
             if accelerator.is_local_main_process:
-                # Log training metrics
                 wandb.log({
-                    "Train Loss": train_loss.item(),
-                    "PSNR Loss": loss_psnr.item(),
-                    "SSIM Loss": loss_ssim.item(),
-                    "LPIPS Loss": loss_lpips.item(),
-                    "Edge Loss": loss_edge.item(),
-                    'scales/psnr_scale': opt.LOSSES.PSNR_SCALE,
-                    'scales/ssim_scale': opt.LOSSES.SSIM_SCALE,
-                    'scales/lpips_scale': opt.LOSSES.LPIPS_SCALE,
-                    'scales/edge_scale': opt.LOSSES.EDGE_SCALE,
-                    "Learning Rate": scheduler_b.get_last_lr()[0],
-                    "Epoch": epoch,
-                    "Iteration": iteration
+                    "Train/Epoch": epoch,
+                    "Train/Iter": i,
+                    "Train/Total_Loss": loss_comp["Total_Loss"],
+                    "Train/PSNR_Loss": loss_comp["PSNR_Loss"],
+                    "Train/SSIM_Loss": loss_comp["SSIM_Loss"],
+                    "Train/LPIPS_Loss": loss_comp["LPIPS_Loss"],
+                    "Train/Edge_Loss": loss_comp["Edge_Loss"],
+                    "Train/Freq_Loss": loss_comp["Freq_Loss"],
+                    "Train/LR": scheduler.get_last_lr()[0],
                 })
 
-        scheduler_b.step()
+        scheduler.step()
 
-        # testing
+        # Validation after every VAL_AFTER_EVERY epochs.
         if epoch % opt.TRAINING.VAL_AFTER_EVERY == 0:
             model.eval()
-            psnr = 0
-            ssim = 0
-            lpips = 0
+            val_psnr = 0.0
+            val_ssim = 0.0
+            val_lpips_sum = 0.0
+            val_uciqe = 0.0
+            val_uiqm = 0.0
 
-            uciqe = 0
-            uiqm = 0
+            val_total_loss = 0.0
+            val_psnr_loss = 0.0
+            val_ssim_loss = 0.0
+            val_lpips_loss = 0.0
+            val_edge_loss = 0.0
+            val_freq_loss = 0.0
 
+            with torch.no_grad():
+                for _, val_data in enumerate(tqdm(val_loader, disable=not accelerator.is_local_main_process)):
+                    inp_val = val_data[0].contiguous()
+                    tar_val = val_data[1]
 
-            for _, data in enumerate(tqdm(testloader, disable=not accelerator.is_local_main_process)):
-                # validation_start_time = time.time()
-                inp = data[0].contiguous()
-                tar = data[1]
-
-                with torch.no_grad():
-                    res = model(inp)
-
-                res, tar = accelerator.gather((res, tar))
-
-                psnr += peak_signal_noise_ratio(res, tar, data_range=1).item()
-                ssim += structural_similarity_index_measure(res, tar, data_range=1).item()
-                lpips += criterion_lpips(res, tar).item()
-                uciqe += batch_uciqe(res)
-                uiqm += batch_uiqm(res)
-
-            psnr /= size
-            ssim /= size
-            lpips /= size
-            uciqe /= size
-            uiqm /= size
-
-            # Log validation metrics
-            if accelerator.is_local_main_process:
-                # Log validation metrics
-                wandb.log({
-                    "Validation PSNR": psnr,
-                    "Validation SSIM": ssim,
-                    "Validation LPIPS": lpips,
-                    "Validation UCIQE": uciqe,
-                    "Validation UIQM": uiqm,
-                    "Epoch": epoch
-                })
-
-                if psnr > best_psnr:
-                    # save model
-                    best_psnr = psnr
-                    best_epoch = epoch
-                    save_checkpoint({
-                        'state_dict': model.state_dict(),
-                        'optimizer': optimizer_b.state_dict(),
-                        'scheduler': scheduler_b.state_dict(),
-                        'best_psnr': best_psnr,
-                        'best_epoch': best_epoch
-                    }, epoch, opt.WANDB.NAME, opt.TRAINING.SAVE_DIR)
-
-                log_stats = ("epoch: {}, PSNR: {}, SSIM: {}, LPIPS: {}, UCIQE: {}, "
-                             "UIQM: {}, best PSNR: {}, best epoch: {}"
-                             .format(epoch, psnr, ssim, lpips, uciqe, uiqm, best_psnr, best_epoch))
-                print(log_stats)
-                log_file_path = os.path.join(log_dir, opt.TRAINING.LOG_FILE)
-                with open(log_file_path, mode='a', encoding='utf-8') as f:
-                    f.write(json.dumps(log_stats) + '\n')
-                    wandb.save(log_file_path, base_path=log_dir)
-                
-                # Save and log random sample images
-                num_samples = 2
-                sample_indices = random.sample(range(len(testloader.dataset)), num_samples)
-
-                table = wandb.Table(columns=["Input", "Target", "Prediction"])
-                for idx in sample_indices:
-                    inp, tar, filename = testloader.dataset[idx]
-                    inp = inp.unsqueeze(0).to(device)
-                    tar = tar.unsqueeze(0).to(device)
-                    with torch.no_grad():
-                        res = model(inp)
-                    # print(f"Input shape: {inp.cpu().squeeze(0).shape}")
-                    # print(f"Target shape: {tar.cpu().squeeze(0).shape}")
-                    # print(f"Prediction shape: {res.cpu().squeeze(0).shape}")
-                    # Comment out local saving:
-                    # input_path = os.path.join(log_dir, f"input_epoch_{epoch}_{filename}")
-                    # target_path = os.path.join(log_dir, f"target_epoch_{epoch}_{filename}")
-                    # res_path = os.path.join(log_dir, f"res_epoch_{epoch}_{filename}")
-                    # save_image(inp, input_path)
-                    # save_image(tar, target_path)
-                    # save_image(res, res_path)
-
-                    # Add to wandb table without batch dimension:
-                    table.add_data(
-                        wandb.Image(inp.cpu().squeeze(0), caption=f"Input Epoch {epoch} - {filename}"),
-                        wandb.Image(tar.cpu().squeeze(0), caption=f"Target Epoch {epoch} - {filename}"),
-                        wandb.Image(res.cpu().squeeze(0), caption=f"Prediction Epoch {epoch} - {filename}")
+                    out_val = model(inp_val)
+                    val_loss, val_dict = combined_loss(
+                        out_val, tar_val,
+                        lambda_psnr=scale_psnr,
+                        lambda_ssim=scale_ssim,
+                        lambda_lpips=scale_lpips,
+                        lambda_edge=scale_edge,
+                        lambda_freq=scale_freq,
+                        device=device
                     )
 
-                wandb.log({"Samples": table})
+                    val_total_loss += val_dict["Total_Loss"]
+                    val_psnr_loss += val_dict["PSNR_Loss"]
+                    val_ssim_loss += val_dict["SSIM_Loss"]
+                    val_lpips_loss += val_dict["LPIPS_Loss"]
+                    val_edge_loss += val_dict["Edge_Loss"]
+                    val_freq_loss += val_dict["Freq_Loss"]
 
-    accelerator.end_training()
+                    out_g, tar_g = accelerator.gather((out_val, tar_val))
 
+                    val_psnr += peak_signal_noise_ratio(out_g, tar_g, data_range=1).item()
+                    val_ssim += structural_similarity_index_measure(out_g, tar_g, data_range=1).item()
+                    val_lpips_loss += criterion_lpips(out_val, tar_val).item()
+                   
+                    val_uciqe += batch_uciqe(out_g)
+                    val_uiqm += batch_uiqm(out_g)
 
-if __name__ == '__main__':
-    main()
+            # Compute average metrics.
+            val_total_loss /= val_size
+            val_psnr_loss  /= val_size
+            val_ssim_loss  /= val_size
+            val_lpips_loss /= val_size
+            val_edge_loss  /= val_size
+            val_freq_loss  /= val_size
+
+            val_psnr       /= val_size
+            val_ssim       /= val_size
+            val_lpips_sum  /= val_size
+            val_uciqe      /= val_size
+            val_uiqm       /= val_size
+
+            # Update best metrics.
+            if val_uciqe > best_uciqe:
+                best_uciqe = val_uciqe
+                best_uciqe_epoch = epoch
+            if val_uiqm > best_uiqm:
+                best_uiqm = val_uiqm
+                best_uiqm_epoch = epoch
+
+            metrics_dict = {
+                "psnr": val_psnr,
+                "ssim": val_ssim,
+                "total_loss": val_total_loss,
+                "best_psnr": best_psnr,
+                "best_ssim": best_ssim,
+                "best_loss": best_loss,
+                "best_psnr_epoch": best_psnr_epoch,
+                "best_ssim_epoch": best_ssim_epoch,
+                "best_loss_epoch": best_loss_epoch,
+                "best_uciqe": best_uciqe,
+                "best_uiqm": best_uiqm,
+                "best_uciqe_epoch": best_uciqe_epoch,
+                "best_uiqm_epoch": best_uiqm_epoch
+            }
+
+            if accelerator.is_local_main_process:
+                updated = save_checkpoints(model, optimizer, scheduler, epoch, metrics_dict, opt)
+                best_psnr = updated["best_psnr"]
+                best_ssim = updated["best_ssim"]
+                best_loss = updated["best_loss"]
+                best_psnr_epoch = updated["best_psnr_epoch"]
+                best_ssim_epoch = updated["best_ssim_epoch"]
+                best_loss_epoch = updated["best_loss_epoch"]
+
+                val_metrics = {
+                    "Val/Epoch": epoch,
+                    "Val/PSNR": val_psnr,
+                    "Val/SSIM": val_ssim,
+                    "Val/LPIPS": val_lpips_sum,
+                    "Val/UCIQE": val_uciqe,
+                    "Val/UIQM": val_uiqm,
+                    "Val/Total_Loss": val_total_loss,
+                    "Val/PSNR_Loss": val_psnr_loss,
+                    "Val/SSIM_Loss": val_ssim_loss,
+                    "Val/LPIPS_Loss": val_lpips_loss,
+                    "Val/Edge_Loss": val_edge_loss,
+                    "Val/Freq_Loss": val_freq_loss,
+                    "Val/Best_PSNR": best_psnr,
+                    "Val/Best_SSIM": best_ssim,
+                    "Val/Best_Loss": best_loss
+                }
+                
+                wandb.log(val_metrics)
+                log_validation_images(val_dataset, model, device, epoch)
+
+                info_str = (
+                    f"Epoch {epoch} || PSNR: {val_psnr:.4f} (best {best_psnr:.4f} @ {best_psnr_epoch}) | "
+                    f"SSIM: {val_ssim:.4f} (best {best_ssim:.4f} @ {best_ssim_epoch}) | "
+                    f"Loss: {val_total_loss:.4f} (best {best_loss:.4f} @ {best_loss_epoch}) | "
+                    f"UCIQE: {val_uciqe:.4f} | UIQM: {val_uiqm:.4f}"
+                )
+                print(info_str)
+                with open(log_file_path, mode='a', encoding='utf-8') as f:
+                    f.write(json.dumps(info_str) + '\n')
+                    wandb.save(log_file_path, base_path=opt.LOG.LOG_DIR)
+
+    end_time = time.time()  # End timing the training process
+    total_time = end_time - start_time
+    if accelerator.is_local_main_process:
+        final_metrics = (
+            f"\nBest Metrics Summary:\n{'-'*50}\n"
+            f"Best PSNR: {best_psnr:.4f} (epoch {best_psnr_epoch})\n"
+            f"Best SSIM: {best_ssim:.4f} (epoch {best_ssim_epoch})\n"
+            f"Best Loss: {best_loss:.4f} (epoch {best_loss_epoch})\n"
+            f"Best UCIQE: {best_uciqe:.4f} (epoch {best_uciqe_epoch})\n"
+            f"Best UIQM: {best_uiqm:.4f} (epoch {best_uiqm_epoch})\n"
+            f"Total Training Time: {total_time:.2f} seconds\n"
+        )
+
+        with open(log_file_path, mode='a', encoding='utf-8') as f:
+            f.write(final_metrics)
+
+        wandb.log({
+            "Best_Metrics/PSNR": best_psnr,
+            "Best_Metrics/SSIM": best_ssim,
+            "Best_Metrics/Loss": best_loss,
+            "Best_Metrics/UCIQE": best_uciqe,
+            "Best_Metrics/UIQM": best_uiqm,
+            "Best_Metrics/PSNR_Epoch": best_psnr_epoch,
+            "Best_Metrics/SSIM_Epoch": best_ssim_epoch,
+            "Best_Metrics/Loss_Epoch": best_loss_epoch,
+            "Best_Metrics/UCIQE_Epoch": best_uciqe_epoch,
+            "Best_Metrics/UIQM_Epoch": best_uiqm_epoch,
+            "Training/Total_Time": total_time
+        })
+
+        accelerator.end_training()
+
+if __name__ == "__main__":
+    train()

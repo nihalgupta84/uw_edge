@@ -4,7 +4,7 @@ import torch
 from fvcore.nn import FlopCountAnalysis, ActivationCountAnalysis
 from torch.utils.benchmark import Timer
 import numpy as np
-from models.wavelet_model import *
+from models.wavelet_model_v1 import *
 
 # ======================================================
 # 1. Unit Test Framework for Module Validation

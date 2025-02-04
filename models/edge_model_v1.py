@@ -3,6 +3,7 @@
 
 import torch
 import warnings
+from thop import profile, clever_format
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint
@@ -349,7 +350,7 @@ class SCBackbone(nn.Module):
 ########################################################################
 # 6. HRBranch
 ########################################################################
-class EdgeModel(nn.Module):
+class EdgeModel_V1(nn.Module):
     """
     Upgraded 'ScaterringBranch' that uses our new SCBackbone
     for advanced haze removal + scattering correction.
@@ -359,7 +360,7 @@ class EdgeModel(nn.Module):
         featrueHR, hazeRemoval = self.hfBranch(input)
     """
     def __init__(self, in_channels=3, base_channels=64):
-        super(EdgeModel, self).__init__()
+        super(EdgeModel_V1, self).__init__()
         # Instantiating our new backbone
         self.ch_in = 3
         self.down_depth = 2        
@@ -382,22 +383,185 @@ class EdgeModel(nn.Module):
         featrueHR, hazeRemoval = self.backbone(input)
         return featrueHR
     
-def test_model():
-    model = EdgeModel().to('cuda')
+# def test_model():
+#     model = EdgeModel().to('cuda')
+#     inp = torch.randn(1, 3, 256, 256).to('cuda')
+#     print("Model Summary:")
+#     summary(model, input_size=(1, 3, 256, 256))
+
+#     out = model(inp)
+#     print(out.shape)
+
+# if __name__ == '__main__':
+#     from thop import profile
+#     from thop import clever_format
+#     from torchinfo import summary
+#     inp = torch.randn(1, 3, 256, 256)
+#     model = EdgeModel()
+#     macs, params = profile(model, inputs=(inp,))
+#     macs, params = clever_format([macs, params], "%.3f")
+#     print(macs, params)
+#     test_model()
+
+
+def test_scbackbone():
+    model = SCBackbone().to('cuda')
     inp = torch.randn(1, 3, 256, 256).to('cuda')
-    print("Model Summary:")
-    summary(model, input_size=(1, 3, 256, 256))
 
-    out = model(inp)
-    print(out.shape)
+    # Forward pass with intermediate shape prints
+    x0 = model.init_conv(inp)
+    print("After init_conv:", x0.shape)
 
-if __name__ == '__main__':
-    from thop import profile
-    from thop import clever_format
-    from torchinfo import summary
-    inp = torch.randn(1, 3, 256, 256)
-    model = EdgeModel()
+    s1 = model.encoder1(x0)
+    print("After encoder1:", s1.shape)
+    x1 = model.down1(s1)
+    print("After down1:", x1.shape)
+
+    s2 = model.encoder2(x1)
+    print("After encoder2:", s2.shape)
+    x2 = model.down2(s2)
+    print("After down2:", x2.shape)
+
+    s3 = model.encoder3(x2)
+    print("After encoder3:", s3.shape)
+    x3 = model.down3(s3)
+    print("After down3:", x3.shape)
+
+    b = model.bottleneck(x3)
+    print("After bottleneck:", b.shape)
+
+    d3 = model.decoder3(b, s3)
+    print("After decoder3:", d3.shape)
+    d2 = model.decoder2(d3, s2)
+    print("After decoder2:", d2.shape)
+    d1 = model.decoder1(d2, s1)
+    print("After decoder1:", d1.shape)
+
+    out = model.final(d1)
+    print("After final:", out.shape)
+
     macs, params = profile(model, inputs=(inp,))
     macs, params = clever_format([macs, params], "%.3f")
-    print(macs, params)
-    test_model()
+    print(f"MACs: {macs}, Params: {params}")
+
+def test_scencoderblock():
+    model = SCEncoderBlock(3, 64).to('cuda')
+    inp = torch.randn(1, 3, 256, 256).to('cuda')
+
+    out = model.conv1(inp)
+    print("After conv1:", out.shape)
+
+    e_feats = model.edge_detect(out)
+    print("After edge_detect:", e_feats.shape)
+
+    a_feats = model.attention(out)
+    print("After attention:", a_feats.shape)
+
+    out = out + e_feats + a_feats
+    out = model.dropout(out)
+    print("After dropout:", out.shape)
+
+    out = model.conv2(out)
+    print("After conv2:", out.shape)
+
+    skip = model.skip_conv(inp)
+    out = out + skip
+    print("After skip connection:", out.shape)
+
+    macs, params = profile(model, inputs=(inp,))
+    macs, params = clever_format([macs, params], "%.3f")
+    print(f"MACs: {macs}, Params: {params}")
+
+def test_scdecoderblock():
+    model = SCDecoderBlock(128, 64, 64).to('cuda')
+    inp = torch.randn(1, 128, 64, 64).to('cuda')
+    skip = torch.randn(1, 64, 128, 128).to('cuda')
+
+    skip = model.skip_norm(skip)
+    print("After skip_norm:", skip.shape)
+
+    x = model.upsample(inp)
+    print("After upsample:", x.shape)
+
+    x = torch.cat([x, skip], dim=1)
+    print("After concatenation:", x.shape)
+
+    x = model.refine(x)
+    print("After refine:", x.shape)
+
+    x = model.attention(x)
+    print("After attention:", x.shape)
+
+    out = model.conv(x)
+    print("After final conv:", out.shape)
+
+    macs, params = profile(model, inputs=(inp, skip))
+    macs, params = clever_format([macs, params], "%.3f")
+    print(f"MACs: {macs}, Params: {params}")
+
+def test_scattention():
+    model = SCAttention(64).to('cuda')
+    inp = torch.randn(1, 64, 128, 128).to('cuda')
+
+    c_att = model.channel_gate(inp)
+    print("After channel_gate:", c_att.shape)
+
+    c_att = model.layer_norm(c_att)
+    print("After layer_norm:", c_att.shape)
+
+    channel_enhanced = inp * c_att.sigmoid()
+    print("After channel enhancement:", channel_enhanced.shape)
+
+    avg_out = torch.mean(inp, dim=1, keepdim=True)
+    max_out = torch.amax(inp, dim=1, keepdim=True)
+    s_in = torch.cat([avg_out, max_out], dim=1)
+    print("After spatial input preparation:", s_in.shape)
+
+    s_att = model.spatial_gate(s_in)
+    print("After spatial_gate:", s_att.shape)
+
+    spatial_enhanced = inp * s_att
+    print("After spatial enhancement:", spatial_enhanced.shape)
+
+    edge_enhanced = model.edge_conv(inp)
+    print("After edge_conv:", edge_enhanced.shape)
+
+    combined = torch.cat([channel_enhanced, spatial_enhanced], dim=1)
+    print("After combining channel and spatial enhancements:", combined.shape)
+
+    fused = model.fusion(combined) + edge_enhanced
+    print("After fusion:", fused.shape)
+
+    macs, params = profile(model, inputs=(inp,))
+    macs, params = clever_format([macs, params], "%.3f")
+    print(f"MACs: {macs}, Params: {params}")
+
+def test_scedgedetectionmodule():
+    model = SCEdgeDetectionModule(64).to('cuda')
+    inp = torch.randn(1, 64, 128, 128).to('cuda')
+
+    cdc_out = model.cdc(inp)
+    print("After cdc:", cdc_out.shape)
+
+    hdc_out = model.hdc(inp)
+    print("After hdc:", hdc_out.shape)
+
+    vdc_out = model.vdc(inp)
+    print("After vdc:", vdc_out.shape)
+
+    edge_feats = torch.cat([cdc_out, hdc_out, vdc_out], dim=1)
+    print("After concatenation:", edge_feats.shape)
+
+    fused = model.fusion(edge_feats)
+    print("After fusion:", fused.shape)
+
+    macs, params = profile(model, inputs=(inp,))
+    macs, params = clever_format([macs, params], "%.3f")
+    print(f"MACs: {macs}, Params: {params}")
+
+if __name__ == '__main__':
+    test_scbackbone()
+    test_scencoderblock()
+    test_scdecoderblock()
+    test_scattention()
+    test_scedgedetectionmodule()

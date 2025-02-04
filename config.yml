@@ -1,10 +1,14 @@
+
+#File: config.yml
 VERBOSE: True
 
 MODEL:
-  SESSION: 'evup'
+  SESSION: 'uieb'
   INPUT: 'raw'
   TARGET: 'ref'
-
+  INPUT_CHANNELS: 3
+  NAME: 'model'  
+  DATASET_NAME: 'UIEB'  # NEW: Specify the dataset name
 # Optimization arguments.
 OPTIM:
   BATCH_SIZE: 24
@@ -20,11 +24,13 @@ TRAINING:
   WEIGHT: ''
   PS_W: 256
   PS_H: 256
-  TRAIN_DIR: './image_dirs/EVUP/train' # path to training data
-  VAL_DIR: './image_dirs/EVUP/val'     # path to validation data
+  TRAIN_DIR: './image_dirs/UIEB/train' # path to training data
+  VAL_DIR: './image_dirs/UIEB/val'     # path to validation data
   SAVE_DIR: './checkpoints'  # Ensure this path is valid and not empty
   ORI: False
-  LOG_FILE: 'log.txt'  # Ensure this is not empty
+  LOG_FILE: 'log.txt'  # Ensure this path is not empty
+  CLIP_GRAD: 0.0         # NEW: Gradient clipping norm
+  MIXED_PRECISION: "no"  # 'no' (default), 'fp16', or 'bf16'.")
 
 TESTING:
   INPUT: 'raw'
@@ -42,8 +48,10 @@ LOSSES:
   USE_PSNR: True
   PSNR_SCALE: 1.0
   USE_SSIM: True
-  SSIM_SCALE: 0.3
+  SSIM_SCALE: 0.8
   USE_LPIPS: True
   LPIPS_SCALE: 0.7
   USE_EDGE: True
-  EDGE_SCALE: 0.1
+  EDGE_SCALE: 0.01
+  USE_FREQ: True
+  FREQ_SCALE: 0.05
