@@ -1,0 +1,255 @@
+
+==================================================
+NEW TRAINING SESSION: 2025-02-10 18:46:28.940204
+Command line: train.py --config_yam=evup.yml MODEL.NAME model LOSSES.USE_FREQ False LOSSES.EDGE_SCALE 0.01 LOSSES.SSIM_SCALE 0.0 OPTIM.BATCH_SIZE 10 OPTIM.NUM_EPOCHS 500 MODEL.SESSION freq_0_edge_0.01_ssim_0.3
+Configuration:
+GPU: [0]
+LOG:
+  LOG_DIR: ./log/model/freq_0_edge_0.01_ssim_0.3
+LOSSES:
+  EDGE_SCALE: 0.01
+  FREQ_SCALE: 0.05
+  LPIPS_SCALE: 0.7
+  PSNR_SCALE: 1.0
+  SSIM_SCALE: 0.0
+  USE_EDGE: True
+  USE_FREQ: False
+  USE_LPIPS: True
+  USE_PSNR: True
+  USE_SSIM: True
+MODEL:
+  DATASET_NAME: EVUP
+  INPUT: raw
+  INPUT_CHANNELS: 3
+  NAME: model
+  SESSION: freq_0_edge_0.01_ssim_0.3
+  TARGET: ref
+OPTIM:
+  BATCH_SIZE: 10
+  BETA1: 0.5
+  LR_INITIAL: 0.0002
+  LR_MIN: 1e-06
+  NEPOCH_DECAY: [100]
+  NUM_EPOCHS: 500
+  SEED: 3407
+  WANDB: True
+TESTING:
+  INPUT: raw
+  LOG_FILE: t01.txt
+  RESULT_DIR: 
+  SAVE_IMAGES: True
+  TARGET: ref
+  VAL_DIR: 
+  WEIGHT: 
+TRAINING:
+  CLIP_GRAD: 0.0
+  LOG_FILE: log_model_freq_0_edge_0.01_ssim_0.3.txt
+  MIXED_PRECISION: no
+  ORI: False
+  PS_H: 256
+  PS_W: 256
+  RESUME: False
+  SAVE_DIR: ./checkpoints/model/EVUP/freq_0_edge_0.01_ssim_0.3
+  TRAIN_DIR: ./image_dirs/EVUP/train
+  VAL_AFTER_EVERY: 1
+  VAL_DIR: ./image_dirs/EVUP/val
+  WEIGHT: 
+VERBOSE: True
+WANDB:
+  
+==================================================
+Model Detailed Summary:
+--------------------------------------------------
+==============================================================================================================
+Layer (type:depth-idx)                                       Output Shape              Param #
+==============================================================================================================
+Model                                                        [1, 3, 256, 256]          --
+├─ColorBalancePrior: 1-1                                     [1, 3, 256, 256]          --
+│    └─NAFBlock: 2-1                                         [1, 3, 256, 256]          6
+│    │    └─LayerNorm2d: 3-1                                 [1, 3, 256, 256]          6
+│    │    └─Conv2d: 3-2                                      [1, 6, 256, 256]          24
+│    │    └─Conv2d: 3-3                                      [1, 6, 256, 256]          60
+│    │    └─SimpleGate: 3-4                                  [1, 3, 256, 256]          --
+│    │    └─Sequential: 3-5                                  [1, 3, 1, 1]              12
+│    │    └─Conv2d: 3-6                                      [1, 3, 256, 256]          12
+│    │    └─Identity: 3-7                                    [1, 3, 256, 256]          --
+│    │    └─LayerNorm2d: 3-8                                 [1, 3, 256, 256]          6
+│    │    └─Conv2d: 3-9                                      [1, 6, 256, 256]          24
+│    │    └─SimpleGate: 3-10                                 [1, 3, 256, 256]          --
+│    │    └─Conv2d: 3-11                                     [1, 3, 256, 256]          12
+│    │    └─Identity: 3-12                                   [1, 3, 256, 256]          --
+├─PriorGuidedRE: 1-2                                         [1, 3, 256, 256]          --
+│    └─ModuleList: 2-7                                       --                        (recursive)
+│    │    └─DetailRestorer: 3-13                             [1, 3, 256, 256]          147,165
+│    └─ModuleList: 2-6                                       --                        (recursive)
+│    │    └─Conv2d: 3-14                                     [1, 6, 128, 128]          78
+│    └─ModuleList: 2-7                                       --                        (recursive)
+│    │    └─DetailRestorer: 3-15                             [1, 6, 128, 128]          149,760
+│    └─ModuleList: 2-8                                       --                        (recursive)
+│    │    └─Conv2d: 3-16                                     [1, 6, 128, 128]          78
+│    └─ModuleList: 2-6                                       --                        (recursive)
+│    │    └─Conv2d: 3-17                                     [1, 12, 64, 64]           300
+│    └─ModuleList: 2-7                                       --                        (recursive)
+│    │    └─DetailRestorer: 3-18                             [1, 12, 64, 64]           154,950
+│    └─ModuleList: 2-8                                       --                        (recursive)
+│    │    └─Conv2d: 3-19                                     [1, 12, 64, 64]           300
+│    └─FeatureContextualizer: 2-9                            [1, 24, 64, 64]           --
+│    │    └─OverlapPatchEmbed: 3-20                          [1, 48, 64, 64]           5,184
+│    │    └─OverlapPatchEmbed: 3-21                          [1, 48, 64, 64]           5,184
+│    │    └─MAQ: 3-22                                        [1, 48, 64, 64]           231,539
+│    │    └─MAQ: 3-23                                        [1, 48, 64, 64]           231,539
+│    │    └─Aggreation: 3-24                                 [1, 48, 64, 64]           43,933
+│    │    └─MAQ: 3-25                                        [1, 48, 64, 64]           231,539
+│    │    └─MAQ: 3-26                                        [1, 48, 64, 64]           231,539
+│    │    └─Aggreation: 3-27                                 [1, 48, 64, 64]           67,603
+│    │    └─SPP: 3-28                                        [1, 24, 64, 64]           61,277
+│    └─ModuleList: 2-14                                      --                        (recursive)
+│    │    └─ScaleHarmonizer: 3-29                            [1, 12, 64, 64]           71,940
+│    └─ModuleList: 2-13                                      --                        (recursive)
+│    │    └─Sequential: 3-30                                 [1, 6, 128, 128]          288
+│    └─ModuleList: 2-14                                      --                        (recursive)
+│    │    └─ScaleHarmonizer: 3-31                            [1, 6, 128, 128]          51,570
+│    └─ModuleList: 2-13                                      --                        (recursive)
+│    │    └─Sequential: 3-32                                 [1, 3, 256, 256]          72
+│    └─ModuleList: 2-14                                      --                        (recursive)
+│    │    └─ScaleHarmonizer: 3-33                            [1, 3, 256, 256]          41,385
+│    └─ScaleHarmonizer: 2-15                                 [1, 3, 256, 256]          --
+│    │    └─Condition: 3-34                                  [1, 32]                   32,640
+│    │    └─Linear: 3-35                                     [1, 64]                   2,112
+│    │    └─Linear: 3-36                                     [1, 64]                   2,112
+│    │    └─Linear: 3-37                                     [1, 64]                   2,112
+│    │    └─Linear: 3-38                                     [1, 64]                   2,112
+│    │    └─Linear: 3-39                                     [1, 3]                    99
+│    │    └─Linear: 3-40                                     [1, 3]                    99
+│    │    └─Conv2d: 3-41                                     [1, 64, 256, 256]         640
+│    │    └─ReLU: 3-42                                       [1, 64, 256, 256]         --
+│    │    └─Conv2d: 3-43                                     [1, 64, 256, 256]         4,160
+│    │    └─ReLU: 3-44                                       [1, 64, 256, 256]         --
+│    │    └─Conv2d: 3-45                                     [1, 3, 256, 256]          195
+│    └─Sigmoid: 2-16                                         [1, 3, 256, 256]          --
+==============================================================================================================
+Total params: 1,815,138
+Trainable params: 1,690,722
+Non-trainable params: 124,416
+Total mult-adds (G): 10.25
+==============================================================================================================
+Input size (MB): 0.79
+Forward/backward pass size (MB): 1995.48
+Params size (MB): 7.09
+Estimated Total Size (MB): 2003.36
+==============================================================================================================
+
+Total Parameters: 1,773,666
+Trainable Parameters: 1,649,250
+
+Training Configuration:
+--------------------------------------------------
+WANDB: {}
+GPU: [0]
+VERBOSE: True
+MODEL: {'SESSION': 'freq_0_edge_0.01_ssim_0.3', 'INPUT': 'raw', 'TARGET': 'ref', 'INPUT_CHANNELS': 3, 'NAME': 'model', 'DATASET_NAME': 'EVUP'}
+OPTIM: {'BATCH_SIZE': 10, 'SEED': 3407, 'NUM_EPOCHS': 500, 'NEPOCH_DECAY': [100], 'LR_INITIAL': 0.0002, 'LR_MIN': 1e-06, 'BETA1': 0.5, 'WANDB': True}
+TRAINING: {'VAL_AFTER_EVERY': 1, 'RESUME': False, 'WEIGHT': '', 'TRAIN_DIR': './image_dirs/EVUP/train', 'VAL_DIR': './image_dirs/EVUP/val', 'SAVE_DIR': './checkpoints/model/EVUP/freq_0_edge_0.01_ssim_0.3', 'PS_W': 256, 'PS_H': 256, 'ORI': False, 'LOG_FILE': 'log_model_freq_0_edge_0.01_ssim_0.3.txt', 'CLIP_GRAD': 0.0, 'MIXED_PRECISION': 'no'}
+TESTING: {'INPUT': 'raw', 'TARGET': 'ref', 'VAL_DIR': '', 'WEIGHT': '', 'SAVE_IMAGES': True, 'RESULT_DIR': '', 'LOG_FILE': 't01.txt'}
+LOG: {'LOG_DIR': './log/model/freq_0_edge_0.01_ssim_0.3'}
+LOSSES: {'USE_PSNR': True, 'PSNR_SCALE': 1.0, 'USE_SSIM': True, 'SSIM_SCALE': 0.0, 'USE_LPIPS': True, 'LPIPS_SCALE': 0.7, 'USE_EDGE': True, 'EDGE_SCALE': 0.01, 'USE_FREQ': False, 'FREQ_SCALE': 0.05}
+"Epoch 1 || PSNR: 10.0179 (best 10.0179 @ 1) | SSIM: 0.1295 (best 0.1295 @ 1) | Loss: 153.3988 (best 153.3988 @ 1) | UCIQE: 0.4255 | UIQM: 3.8930"
+"Epoch 2 || PSNR: 9.8747 (best 10.0179 @ 1) | SSIM: 0.1229 (best 0.1295 @ 1) | Loss: 165.4055 (best 153.3988 @ 1) | UCIQE: 0.4206 | UIQM: 3.9317"
+"Epoch 3 || PSNR: 9.8078 (best 10.0179 @ 1) | SSIM: 0.1210 (best 0.1295 @ 1) | Loss: 170.3798 (best 153.3988 @ 1) | UCIQE: 0.3905 | UIQM: 3.9401"
+"Epoch 4 || PSNR: 9.9038 (best 10.0179 @ 1) | SSIM: 0.1218 (best 0.1295 @ 1) | Loss: 166.9380 (best 153.3988 @ 1) | UCIQE: 0.4209 | UIQM: 3.8662"
+"Epoch 5 || PSNR: 9.7532 (best 10.0179 @ 1) | SSIM: 0.1162 (best 0.1295 @ 1) | Loss: 169.3306 (best 153.3988 @ 1) | UCIQE: 0.4217 | UIQM: 3.8686"
+"Epoch 6 || PSNR: 9.7677 (best 10.0179 @ 1) | SSIM: 0.1159 (best 0.1295 @ 1) | Loss: 166.0366 (best 153.3988 @ 1) | UCIQE: 0.4300 | UIQM: 3.8421"
+"Epoch 7 || PSNR: 9.7921 (best 10.0179 @ 1) | SSIM: 0.1156 (best 0.1295 @ 1) | Loss: 171.1929 (best 153.3988 @ 1) | UCIQE: 0.4322 | UIQM: 3.8243"
+"Epoch 8 || PSNR: 9.6935 (best 10.0179 @ 1) | SSIM: 0.1163 (best 0.1295 @ 1) | Loss: 174.6731 (best 153.3988 @ 1) | UCIQE: 0.4252 | UIQM: 3.8274"
+"Epoch 9 || PSNR: 9.5976 (best 10.0179 @ 1) | SSIM: 0.1114 (best 0.1295 @ 1) | Loss: 180.7537 (best 153.3988 @ 1) | UCIQE: 0.4186 | UIQM: 3.8771"
+"Epoch 10 || PSNR: 9.6318 (best 10.0179 @ 1) | SSIM: 0.1123 (best 0.1295 @ 1) | Loss: 170.3109 (best 153.3988 @ 1) | UCIQE: 0.4233 | UIQM: 3.8826"
+"Epoch 11 || PSNR: 9.7580 (best 10.0179 @ 1) | SSIM: 0.1143 (best 0.1295 @ 1) | Loss: 167.9410 (best 153.3988 @ 1) | UCIQE: 0.4214 | UIQM: 3.8196"
+"Epoch 12 || PSNR: 9.4997 (best 10.0179 @ 1) | SSIM: 0.1109 (best 0.1295 @ 1) | Loss: 182.1731 (best 153.3988 @ 1) | UCIQE: 0.4252 | UIQM: 3.8733"
+"Epoch 13 || PSNR: 9.4713 (best 10.0179 @ 1) | SSIM: 0.1056 (best 0.1295 @ 1) | Loss: 176.1606 (best 153.3988 @ 1) | UCIQE: 0.4319 | UIQM: 3.8888"
+"Epoch 14 || PSNR: 9.7447 (best 10.0179 @ 1) | SSIM: 0.1150 (best 0.1295 @ 1) | Loss: 170.4077 (best 153.3988 @ 1) | UCIQE: 0.4153 | UIQM: 3.8352"
+"Epoch 15 || PSNR: 9.5534 (best 10.0179 @ 1) | SSIM: 0.1074 (best 0.1295 @ 1) | Loss: 178.7625 (best 153.3988 @ 1) | UCIQE: 0.4239 | UIQM: 3.8680"
+"Epoch 16 || PSNR: 9.5758 (best 10.0179 @ 1) | SSIM: 0.1078 (best 0.1295 @ 1) | Loss: 177.3132 (best 153.3988 @ 1) | UCIQE: 0.4190 | UIQM: 3.8872"
+"Epoch 17 || PSNR: 9.6626 (best 10.0179 @ 1) | SSIM: 0.1101 (best 0.1295 @ 1) | Loss: 172.8786 (best 153.3988 @ 1) | UCIQE: 0.4150 | UIQM: 3.8813"
+"Epoch 18 || PSNR: 9.6304 (best 10.0179 @ 1) | SSIM: 0.1086 (best 0.1295 @ 1) | Loss: 174.0685 (best 153.3988 @ 1) | UCIQE: 0.4216 | UIQM: 3.8569"
+"Epoch 19 || PSNR: 9.7186 (best 10.0179 @ 1) | SSIM: 0.1110 (best 0.1295 @ 1) | Loss: 175.2989 (best 153.3988 @ 1) | UCIQE: 0.4083 | UIQM: 3.8444"
+"Epoch 20 || PSNR: 9.6736 (best 10.0179 @ 1) | SSIM: 0.1104 (best 0.1295 @ 1) | Loss: 181.0690 (best 153.3988 @ 1) | UCIQE: 0.4114 | UIQM: 3.8423"
+"Epoch 21 || PSNR: 9.6642 (best 10.0179 @ 1) | SSIM: 0.1094 (best 0.1295 @ 1) | Loss: 171.7182 (best 153.3988 @ 1) | UCIQE: 0.4250 | UIQM: 3.8683"
+"Epoch 22 || PSNR: 9.6125 (best 10.0179 @ 1) | SSIM: 0.1087 (best 0.1295 @ 1) | Loss: 173.8219 (best 153.3988 @ 1) | UCIQE: 0.4242 | UIQM: 3.8480"
+"Epoch 23 || PSNR: 9.7525 (best 10.0179 @ 1) | SSIM: 0.1124 (best 0.1295 @ 1) | Loss: 165.5349 (best 153.3988 @ 1) | UCIQE: 0.4272 | UIQM: 3.8215"
+"Epoch 24 || PSNR: 9.6248 (best 10.0179 @ 1) | SSIM: 0.1092 (best 0.1295 @ 1) | Loss: 174.1901 (best 153.3988 @ 1) | UCIQE: 0.4195 | UIQM: 3.8660"
+"Epoch 25 || PSNR: 9.4913 (best 10.0179 @ 1) | SSIM: 0.1061 (best 0.1295 @ 1) | Loss: 182.3016 (best 153.3988 @ 1) | UCIQE: 0.4070 | UIQM: 3.8933"
+"Epoch 26 || PSNR: 9.4720 (best 10.0179 @ 1) | SSIM: 0.1041 (best 0.1295 @ 1) | Loss: 180.4577 (best 153.3988 @ 1) | UCIQE: 0.4301 | UIQM: 3.9262"
+"Epoch 27 || PSNR: 9.5513 (best 10.0179 @ 1) | SSIM: 0.1073 (best 0.1295 @ 1) | Loss: 184.8688 (best 153.3988 @ 1) | UCIQE: 0.4191 | UIQM: 3.8979"
+"Epoch 28 || PSNR: 9.6415 (best 10.0179 @ 1) | SSIM: 0.1061 (best 0.1295 @ 1) | Loss: 173.1873 (best 153.3988 @ 1) | UCIQE: 0.4307 | UIQM: 3.8914"
+"Epoch 29 || PSNR: 9.5795 (best 10.0179 @ 1) | SSIM: 0.1080 (best 0.1295 @ 1) | Loss: 179.0602 (best 153.3988 @ 1) | UCIQE: 0.4123 | UIQM: 3.9029"
+"Epoch 30 || PSNR: 9.5343 (best 10.0179 @ 1) | SSIM: 0.1085 (best 0.1295 @ 1) | Loss: 187.5391 (best 153.3988 @ 1) | UCIQE: 0.4087 | UIQM: 3.9016"
+"Epoch 31 || PSNR: 9.5849 (best 10.0179 @ 1) | SSIM: 0.1066 (best 0.1295 @ 1) | Loss: 177.0676 (best 153.3988 @ 1) | UCIQE: 0.4317 | UIQM: 3.8994"
+"Epoch 32 || PSNR: 9.5308 (best 10.0179 @ 1) | SSIM: 0.1046 (best 0.1295 @ 1) | Loss: 179.5589 (best 153.3988 @ 1) | UCIQE: 0.4373 | UIQM: 3.9253"
+"Epoch 33 || PSNR: 9.5770 (best 10.0179 @ 1) | SSIM: 0.1074 (best 0.1295 @ 1) | Loss: 183.8168 (best 153.3988 @ 1) | UCIQE: 0.4170 | UIQM: 3.8976"
+"Epoch 34 || PSNR: 9.5339 (best 10.0179 @ 1) | SSIM: 0.1070 (best 0.1295 @ 1) | Loss: 180.9344 (best 153.3988 @ 1) | UCIQE: 0.4196 | UIQM: 3.9009"
+"Epoch 35 || PSNR: 9.5297 (best 10.0179 @ 1) | SSIM: 0.1063 (best 0.1295 @ 1) | Loss: 182.0320 (best 153.3988 @ 1) | UCIQE: 0.4364 | UIQM: 3.9205"
+"Epoch 36 || PSNR: 9.5160 (best 10.0179 @ 1) | SSIM: 0.1063 (best 0.1295 @ 1) | Loss: 189.4392 (best 153.3988 @ 1) | UCIQE: 0.4279 | UIQM: 3.9010"
+"Epoch 37 || PSNR: 9.5571 (best 10.0179 @ 1) | SSIM: 0.1045 (best 0.1295 @ 1) | Loss: 177.2088 (best 153.3988 @ 1) | UCIQE: 0.4446 | UIQM: 3.9570"
+"Epoch 38 || PSNR: 9.4670 (best 10.0179 @ 1) | SSIM: 0.1067 (best 0.1295 @ 1) | Loss: 184.5201 (best 153.3988 @ 1) | UCIQE: 0.4237 | UIQM: 3.9183"
+"Epoch 39 || PSNR: 9.6553 (best 10.0179 @ 1) | SSIM: 0.1093 (best 0.1295 @ 1) | Loss: 177.4173 (best 153.3988 @ 1) | UCIQE: 0.4148 | UIQM: 3.9127"
+"Epoch 40 || PSNR: 9.5941 (best 10.0179 @ 1) | SSIM: 0.1061 (best 0.1295 @ 1) | Loss: 175.8895 (best 153.3988 @ 1) | UCIQE: 0.4195 | UIQM: 3.9241"
+"Epoch 41 || PSNR: 9.6923 (best 10.0179 @ 1) | SSIM: 0.1108 (best 0.1295 @ 1) | Loss: 175.2857 (best 153.3988 @ 1) | UCIQE: 0.4194 | UIQM: 3.8750"
+"Epoch 42 || PSNR: 9.5918 (best 10.0179 @ 1) | SSIM: 0.1062 (best 0.1295 @ 1) | Loss: 181.7087 (best 153.3988 @ 1) | UCIQE: 0.4251 | UIQM: 3.8948"
+"Epoch 43 || PSNR: 9.5646 (best 10.0179 @ 1) | SSIM: 0.1081 (best 0.1295 @ 1) | Loss: 186.0605 (best 153.3988 @ 1) | UCIQE: 0.4080 | UIQM: 3.9230"
+"Epoch 44 || PSNR: 9.7394 (best 10.0179 @ 1) | SSIM: 0.1106 (best 0.1295 @ 1) | Loss: 172.2667 (best 153.3988 @ 1) | UCIQE: 0.4232 | UIQM: 3.8539"
+"Epoch 45 || PSNR: 9.5184 (best 10.0179 @ 1) | SSIM: 0.1074 (best 0.1295 @ 1) | Loss: 188.7710 (best 153.3988 @ 1) | UCIQE: 0.4051 | UIQM: 3.9308"
+"Epoch 46 || PSNR: 9.5895 (best 10.0179 @ 1) | SSIM: 0.1074 (best 0.1295 @ 1) | Loss: 180.2371 (best 153.3988 @ 1) | UCIQE: 0.4288 | UIQM: 3.9392"
+"Epoch 47 || PSNR: 9.4368 (best 10.0179 @ 1) | SSIM: 0.1049 (best 0.1295 @ 1) | Loss: 191.9106 (best 153.3988 @ 1) | UCIQE: 0.4136 | UIQM: 3.9901"
+"Epoch 48 || PSNR: 9.4662 (best 10.0179 @ 1) | SSIM: 0.1044 (best 0.1295 @ 1) | Loss: 184.1610 (best 153.3988 @ 1) | UCIQE: 0.4314 | UIQM: 3.9609"
+"Epoch 49 || PSNR: 9.5582 (best 10.0179 @ 1) | SSIM: 0.1071 (best 0.1295 @ 1) | Loss: 181.3140 (best 153.3988 @ 1) | UCIQE: 0.4188 | UIQM: 3.9384"
+"Epoch 50 || PSNR: 9.4793 (best 10.0179 @ 1) | SSIM: 0.1047 (best 0.1295 @ 1) | Loss: 185.7922 (best 153.3988 @ 1) | UCIQE: 0.4193 | UIQM: 3.9563"
+"Epoch 51 || PSNR: 9.5998 (best 10.0179 @ 1) | SSIM: 0.1074 (best 0.1295 @ 1) | Loss: 182.0022 (best 153.3988 @ 1) | UCIQE: 0.4207 | UIQM: 3.9445"
+"Epoch 52 || PSNR: 9.5731 (best 10.0179 @ 1) | SSIM: 0.1085 (best 0.1295 @ 1) | Loss: 184.0439 (best 153.3988 @ 1) | UCIQE: 0.4137 | UIQM: 3.9550"
+"Epoch 53 || PSNR: 9.4065 (best 10.0179 @ 1) | SSIM: 0.1028 (best 0.1295 @ 1) | Loss: 189.3213 (best 153.3988 @ 1) | UCIQE: 0.4365 | UIQM: 4.0176"
+"Epoch 54 || PSNR: 9.5859 (best 10.0179 @ 1) | SSIM: 0.1085 (best 0.1295 @ 1) | Loss: 182.6521 (best 153.3988 @ 1) | UCIQE: 0.4124 | UIQM: 3.9437"
+"Epoch 55 || PSNR: 9.5696 (best 10.0179 @ 1) | SSIM: 0.1072 (best 0.1295 @ 1) | Loss: 188.6135 (best 153.3988 @ 1) | UCIQE: 0.4212 | UIQM: 3.9678"
+"Epoch 56 || PSNR: 9.6022 (best 10.0179 @ 1) | SSIM: 0.1070 (best 0.1295 @ 1) | Loss: 176.9172 (best 153.3988 @ 1) | UCIQE: 0.4228 | UIQM: 3.9504"
+"Epoch 57 || PSNR: 9.5031 (best 10.0179 @ 1) | SSIM: 0.1053 (best 0.1295 @ 1) | Loss: 185.4317 (best 153.3988 @ 1) | UCIQE: 0.4208 | UIQM: 3.9684"
+"Epoch 58 || PSNR: 9.4560 (best 10.0179 @ 1) | SSIM: 0.1048 (best 0.1295 @ 1) | Loss: 185.6161 (best 153.3988 @ 1) | UCIQE: 0.4282 | UIQM: 4.0302"
+"Epoch 59 || PSNR: 9.5714 (best 10.0179 @ 1) | SSIM: 0.1053 (best 0.1295 @ 1) | Loss: 178.0935 (best 153.3988 @ 1) | UCIQE: 0.4281 | UIQM: 3.9874"
+"Epoch 60 || PSNR: 9.4898 (best 10.0179 @ 1) | SSIM: 0.1049 (best 0.1295 @ 1) | Loss: 185.5257 (best 153.3988 @ 1) | UCIQE: 0.4336 | UIQM: 3.9873"
+"Epoch 61 || PSNR: 9.5532 (best 10.0179 @ 1) | SSIM: 0.1087 (best 0.1295 @ 1) | Loss: 189.2649 (best 153.3988 @ 1) | UCIQE: 0.4104 | UIQM: 3.8911"
+"Epoch 62 || PSNR: 9.4945 (best 10.0179 @ 1) | SSIM: 0.1093 (best 0.1295 @ 1) | Loss: 198.2762 (best 153.3988 @ 1) | UCIQE: 0.4073 | UIQM: 3.9382"
+"Epoch 63 || PSNR: 9.5802 (best 10.0179 @ 1) | SSIM: 0.1063 (best 0.1295 @ 1) | Loss: 178.0101 (best 153.3988 @ 1) | UCIQE: 0.4234 | UIQM: 3.9943"
+"Epoch 64 || PSNR: 9.5509 (best 10.0179 @ 1) | SSIM: 0.1038 (best 0.1295 @ 1) | Loss: 179.1844 (best 153.3988 @ 1) | UCIQE: 0.4291 | UIQM: 4.0168"
+"Epoch 65 || PSNR: 9.5493 (best 10.0179 @ 1) | SSIM: 0.1060 (best 0.1295 @ 1) | Loss: 185.0096 (best 153.3988 @ 1) | UCIQE: 0.4211 | UIQM: 4.0007"
+"Epoch 66 || PSNR: 9.5372 (best 10.0179 @ 1) | SSIM: 0.1081 (best 0.1295 @ 1) | Loss: 189.9880 (best 153.3988 @ 1) | UCIQE: 0.4119 | UIQM: 3.9392"
+"Epoch 67 || PSNR: 9.5101 (best 10.0179 @ 1) | SSIM: 0.1044 (best 0.1295 @ 1) | Loss: 183.9067 (best 153.3988 @ 1) | UCIQE: 0.4228 | UIQM: 4.0413"
+"Epoch 68 || PSNR: 9.3843 (best 10.0179 @ 1) | SSIM: 0.1072 (best 0.1295 @ 1) | Loss: 203.5304 (best 153.3988 @ 1) | UCIQE: 0.4065 | UIQM: 3.9950"
+"Epoch 69 || PSNR: 9.4411 (best 10.0179 @ 1) | SSIM: 0.1054 (best 0.1295 @ 1) | Loss: 194.1012 (best 153.3988 @ 1) | UCIQE: 0.4227 | UIQM: 4.0314"
+"Epoch 70 || PSNR: 9.5149 (best 10.0179 @ 1) | SSIM: 0.1057 (best 0.1295 @ 1) | Loss: 185.1000 (best 153.3988 @ 1) | UCIQE: 0.4257 | UIQM: 4.0368"
+"Epoch 71 || PSNR: 9.5357 (best 10.0179 @ 1) | SSIM: 0.1065 (best 0.1295 @ 1) | Loss: 185.0416 (best 153.3988 @ 1) | UCIQE: 0.4212 | UIQM: 4.0198"
+"Epoch 72 || PSNR: 9.4211 (best 10.0179 @ 1) | SSIM: 0.1084 (best 0.1295 @ 1) | Loss: 200.6314 (best 153.3988 @ 1) | UCIQE: 0.4020 | UIQM: 3.9552"
+"Epoch 73 || PSNR: 9.3890 (best 10.0179 @ 1) | SSIM: 0.1055 (best 0.1295 @ 1) | Loss: 199.5111 (best 153.3988 @ 1) | UCIQE: 0.4117 | UIQM: 4.0187"
+"Epoch 74 || PSNR: 9.6050 (best 10.0179 @ 1) | SSIM: 0.1069 (best 0.1295 @ 1) | Loss: 180.7750 (best 153.3988 @ 1) | UCIQE: 0.4256 | UIQM: 3.9842"
+"Epoch 75 || PSNR: 9.5418 (best 10.0179 @ 1) | SSIM: 0.1087 (best 0.1295 @ 1) | Loss: 187.5145 (best 153.3988 @ 1) | UCIQE: 0.4123 | UIQM: 3.9617"
+"Epoch 76 || PSNR: 9.5777 (best 10.0179 @ 1) | SSIM: 0.1059 (best 0.1295 @ 1) | Loss: 179.1998 (best 153.3988 @ 1) | UCIQE: 0.4291 | UIQM: 4.0004"
+"Epoch 77 || PSNR: 9.5728 (best 10.0179 @ 1) | SSIM: 0.1065 (best 0.1295 @ 1) | Loss: 184.0188 (best 153.3988 @ 1) | UCIQE: 0.4247 | UIQM: 4.0198"
+"Epoch 78 || PSNR: 9.5180 (best 10.0179 @ 1) | SSIM: 0.1061 (best 0.1295 @ 1) | Loss: 183.6324 (best 153.3988 @ 1) | UCIQE: 0.4268 | UIQM: 3.9905"
+"Epoch 79 || PSNR: 9.4818 (best 10.0179 @ 1) | SSIM: 0.1051 (best 0.1295 @ 1) | Loss: 188.1722 (best 153.3988 @ 1) | UCIQE: 0.4286 | UIQM: 4.0532"
+"Epoch 80 || PSNR: 9.5081 (best 10.0179 @ 1) | SSIM: 0.1042 (best 0.1295 @ 1) | Loss: 183.1648 (best 153.3988 @ 1) | UCIQE: 0.4363 | UIQM: 4.0581"
+"Epoch 81 || PSNR: 9.4681 (best 10.0179 @ 1) | SSIM: 0.1073 (best 0.1295 @ 1) | Loss: 196.3104 (best 153.3988 @ 1) | UCIQE: 0.4073 | UIQM: 4.0158"
+"Epoch 82 || PSNR: 9.5291 (best 10.0179 @ 1) | SSIM: 0.1054 (best 0.1295 @ 1) | Loss: 186.0988 (best 153.3988 @ 1) | UCIQE: 0.4315 | UIQM: 4.0142"
+"Epoch 83 || PSNR: 9.5188 (best 10.0179 @ 1) | SSIM: 0.1090 (best 0.1295 @ 1) | Loss: 195.8141 (best 153.3988 @ 1) | UCIQE: 0.4034 | UIQM: 3.9896"
+"Epoch 84 || PSNR: 9.5582 (best 10.0179 @ 1) | SSIM: 0.1065 (best 0.1295 @ 1) | Loss: 182.8569 (best 153.3988 @ 1) | UCIQE: 0.4158 | UIQM: 4.0563"
+"Epoch 85 || PSNR: 9.4058 (best 10.0179 @ 1) | SSIM: 0.1072 (best 0.1295 @ 1) | Loss: 202.6711 (best 153.3988 @ 1) | UCIQE: 0.4146 | UIQM: inf"
+"Epoch 86 || PSNR: 9.3675 (best 10.0179 @ 1) | SSIM: 0.1101 (best 0.1295 @ 1) | Loss: 214.8378 (best 153.3988 @ 1) | UCIQE: 0.3997 | UIQM: 3.9180"
+"Epoch 87 || PSNR: 9.3769 (best 10.0179 @ 1) | SSIM: 0.1074 (best 0.1295 @ 1) | Loss: 206.1315 (best 153.3988 @ 1) | UCIQE: 0.4100 | UIQM: 4.0549"
+"Epoch 88 || PSNR: 9.4763 (best 10.0179 @ 1) | SSIM: 0.1041 (best 0.1295 @ 1) | Loss: 189.1060 (best 153.3988 @ 1) | UCIQE: 0.4226 | UIQM: 4.0501"
+"Epoch 89 || PSNR: 9.5246 (best 10.0179 @ 1) | SSIM: 0.1041 (best 0.1295 @ 1) | Loss: 185.3015 (best 153.3988 @ 1) | UCIQE: 0.4299 | UIQM: inf"
+"Epoch 90 || PSNR: 9.3995 (best 10.0179 @ 1) | SSIM: 0.1092 (best 0.1295 @ 1) | Loss: 211.1151 (best 153.3988 @ 1) | UCIQE: 0.4102 | UIQM: 4.0112"
+"Epoch 91 || PSNR: 9.4767 (best 10.0179 @ 1) | SSIM: 0.1074 (best 0.1295 @ 1) | Loss: 195.8613 (best 153.3988 @ 1) | UCIQE: 0.4226 | UIQM: 4.0338"
+"Epoch 92 || PSNR: 9.4335 (best 10.0179 @ 1) | SSIM: 0.1059 (best 0.1295 @ 1) | Loss: 198.7186 (best 153.3988 @ 1) | UCIQE: 0.4193 | UIQM: 4.0734"
+"Epoch 93 || PSNR: 9.4916 (best 10.0179 @ 1) | SSIM: 0.1047 (best 0.1295 @ 1) | Loss: 189.1356 (best 153.3988 @ 1) | UCIQE: 0.4290 | UIQM: 4.0934"
+"Epoch 94 || PSNR: 9.4366 (best 10.0179 @ 1) | SSIM: 0.1078 (best 0.1295 @ 1) | Loss: 200.4507 (best 153.3988 @ 1) | UCIQE: 0.4117 | UIQM: 3.9966"
+"Epoch 95 || PSNR: 9.4495 (best 10.0179 @ 1) | SSIM: 0.1062 (best 0.1295 @ 1) | Loss: 200.4461 (best 153.3988 @ 1) | UCIQE: 0.4153 | UIQM: inf"
+"Epoch 96 || PSNR: 9.5148 (best 10.0179 @ 1) | SSIM: 0.1072 (best 0.1295 @ 1) | Loss: 193.0308 (best 153.3988 @ 1) | UCIQE: 0.4186 | UIQM: 4.0542"
+"Epoch 97 || PSNR: 9.4393 (best 10.0179 @ 1) | SSIM: 0.1055 (best 0.1295 @ 1) | Loss: 196.8062 (best 153.3988 @ 1) | UCIQE: 0.4183 | UIQM: 4.0779"
+"Epoch 98 || PSNR: 9.4684 (best 10.0179 @ 1) | SSIM: 0.1050 (best 0.1295 @ 1) | Loss: 193.0000 (best 153.3988 @ 1) | UCIQE: 0.4326 | UIQM: 4.1035"
+"Epoch 99 || PSNR: 9.4615 (best 10.0179 @ 1) | SSIM: 0.1076 (best 0.1295 @ 1) | Loss: 199.5432 (best 153.3988 @ 1) | UCIQE: 0.4077 | UIQM: 3.9949"
+"Epoch 100 || PSNR: 9.4053 (best 10.0179 @ 1) | SSIM: 0.1041 (best 0.1295 @ 1) | Loss: 196.6977 (best 153.3988 @ 1) | UCIQE: 0.4235 | UIQM: 4.1009"

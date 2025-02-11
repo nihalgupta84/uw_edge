@@ -1,0 +1,181 @@
+
+==================================================
+NEW TRAINING SESSION: 2025-02-10 14:46:49.923870
+Command line: train.py --config_yam=evup.yml MODEL.NAME edge_v1 LOSSES.USE_FREQ False LOSSES.EDGE_SCALE 0.01 LOSSES.SSIM_SCALE 0.3 OPTIM.BATCH_SIZE 12 OPTIM.NUM_EPOCHS 500 MODEL.SESSION freq_0_edge_0.01_ssim_0.3_no_initial_weights
+Configuration:
+GPU: [0]
+LOG:
+  LOG_DIR: ./log/edge_v1/freq_0_edge_0.01_ssim_0.3_no_initial_weights
+LOSSES:
+  EDGE_SCALE: 0.01
+  FREQ_SCALE: 0.05
+  LPIPS_SCALE: 0.7
+  PSNR_SCALE: 1.0
+  SSIM_SCALE: 0.3
+  USE_EDGE: True
+  USE_FREQ: False
+  USE_LPIPS: True
+  USE_PSNR: True
+  USE_SSIM: True
+MODEL:
+  DATASET_NAME: EVUP
+  INPUT: raw
+  INPUT_CHANNELS: 3
+  NAME: edge_v1
+  SESSION: freq_0_edge_0.01_ssim_0.3_no_initial_weights
+  TARGET: ref
+OPTIM:
+  BATCH_SIZE: 12
+  BETA1: 0.5
+  LR_INITIAL: 0.0002
+  LR_MIN: 1e-06
+  NEPOCH_DECAY: [100]
+  NUM_EPOCHS: 500
+  SEED: 3407
+  WANDB: True
+TESTING:
+  INPUT: raw
+  LOG_FILE: t01.txt
+  RESULT_DIR: 
+  SAVE_IMAGES: True
+  TARGET: ref
+  VAL_DIR: 
+  WEIGHT: 
+TRAINING:
+  CLIP_GRAD: 0.0
+  LOG_FILE: log_edge_v1_freq_0_edge_0.01_ssim_0.3_no_initial_weights.txt
+  MIXED_PRECISION: no
+  ORI: False
+  PS_H: 256
+  PS_W: 256
+  RESUME: False
+  SAVE_DIR: ./checkpoints/edge_v1/EVUP/freq_0_edge_0.01_ssim_0.3_no_initial_weights
+  TRAIN_DIR: ./image_dirs/EVUP/train
+  VAL_AFTER_EVERY: 1
+  VAL_DIR: ./image_dirs/EVUP/val
+  WEIGHT: 
+VERBOSE: True
+WANDB:
+  
+==================================================
+Model Detailed Summary:
+--------------------------------------------------
+=========================================================================================================
+Layer (type:depth-idx)                                  Output Shape              Param #
+=========================================================================================================
+EdgeModel_V1                                            [1, 3, 256, 256]          --
+├─SCBackbone: 1-1                                       [1, 64, 256, 256]         --
+│    └─Sequential: 2-1                                  [1, 64, 256, 256]         --
+│    │    └─Conv2d: 3-1                                 [1, 64, 256, 256]         9,472
+│    │    └─InstanceNorm2d: 3-2                         [1, 64, 256, 256]         --
+│    │    └─GELU: 3-3                                   [1, 64, 256, 256]         --
+│    │    └─Conv2d: 3-4                                 [1, 64, 256, 256]         36,928
+│    │    └─InstanceNorm2d: 3-5                         [1, 64, 256, 256]         --
+│    │    └─GELU: 3-6                                   [1, 64, 256, 256]         --
+│    └─SCEncoderBlock: 2-2                              [1, 64, 256, 256]         --
+│    │    └─Sequential: 3-7                             [1, 64, 256, 256]         36,928
+│    │    └─SCEdgeDetectionModule: 3-8                  [1, 64, 256, 256]         14,464
+│    │    └─SCAttention: 3-9                            [1, 64, 256, 256]         10,347
+│    │    └─Dropout: 3-10                               [1, 64, 256, 256]         --
+│    │    └─Sequential: 3-11                            [1, 64, 256, 256]         36,928
+│    │    └─Identity: 3-12                              [1, 64, 256, 256]         --
+│    └─Sequential: 2-3                                  [1, 64, 128, 128]         --
+│    │    └─MaxPool2d: 3-13                             [1, 64, 128, 128]         --
+│    │    └─Dropout: 3-14                               [1, 64, 128, 128]         --
+│    └─SCEncoderBlock: 2-4                              [1, 128, 128, 128]        --
+│    │    └─Sequential: 3-15                            [1, 128, 128, 128]        73,856
+│    │    └─SCEdgeDetectionModule: 3-16                 [1, 128, 128, 128]        53,504
+│    │    └─SCAttention: 3-17                           [1, 128, 128, 128]        39,027
+│    │    └─Dropout: 3-18                               [1, 128, 128, 128]        --
+│    │    └─Sequential: 3-19                            [1, 128, 128, 128]        147,584
+│    │    └─Sequential: 3-20                            [1, 128, 128, 128]        8,320
+│    └─Sequential: 2-5                                  [1, 128, 64, 64]          --
+│    │    └─MaxPool2d: 3-21                             [1, 128, 64, 64]          --
+│    │    └─Dropout: 3-22                               [1, 128, 64, 64]          --
+│    └─SCEncoderBlock: 2-6                              [1, 256, 64, 64]          --
+│    │    └─Sequential: 3-23                            [1, 256, 64, 64]          295,168
+│    │    └─SCEdgeDetectionModule: 3-24                 [1, 256, 64, 64]          205,312
+│    │    └─SCAttention: 3-25                           [1, 256, 64, 64]          151,683
+│    │    └─Dropout: 3-26                               [1, 256, 64, 64]          --
+│    │    └─Sequential: 3-27                            [1, 256, 64, 64]          590,080
+│    │    └─Sequential: 3-28                            [1, 256, 64, 64]          33,024
+│    └─Sequential: 2-7                                  [1, 256, 32, 32]          --
+│    │    └─MaxPool2d: 3-29                             [1, 256, 32, 32]          --
+│    │    └─Dropout: 3-30                               [1, 256, 32, 32]          --
+│    └─Sequential: 2-8                                  [1, 512, 32, 32]          --
+│    │    └─SCEncoderBlock: 3-31                        [1, 512, 32, 32]          5,073,571
+│    │    └─SCAttention: 3-32                           [1, 512, 32, 32]          598,179
+│    │    └─Dropout: 3-33                               [1, 512, 32, 32]          --
+│    └─SCDecoderBlock: 2-9                              [1, 256, 64, 64]          --
+│    │    └─InstanceNorm2d: 3-34                        [1, 256, 64, 64]          --
+│    │    └─Sequential: 3-35                            [1, 512, 64, 64]          2,359,808
+│    │    └─Sequential: 3-36                            [1, 768, 64, 64]          590,592
+│    │    └─SCAttention: 3-37                           [1, 768, 64, 64]          1,339,587
+│    │    └─Sequential: 3-38                            [1, 256, 64, 64]          2,359,808
+│    └─SCDecoderBlock: 2-10                             [1, 128, 128, 128]        --
+│    │    └─InstanceNorm2d: 3-39                        [1, 128, 128, 128]        --
+│    │    └─Sequential: 3-40                            [1, 256, 128, 128]        590,080
+│    │    └─Sequential: 3-41                            [1, 384, 128, 128]        147,840
+│    │    └─SCAttention: 3-42                           [1, 384, 128, 128]        338,067
+│    │    └─Sequential: 3-43                            [1, 128, 128, 128]        590,080
+│    └─SCDecoderBlock: 2-11                             [1, 64, 256, 256]         --
+│    │    └─InstanceNorm2d: 3-44                        [1, 64, 256, 256]         --
+│    │    └─Sequential: 3-45                            [1, 128, 256, 256]        147,584
+│    │    └─Sequential: 3-46                            [1, 192, 256, 256]        37,056
+│    │    └─SCAttention: 3-47                           [1, 192, 256, 256]        86,139
+│    │    └─Sequential: 3-48                            [1, 64, 256, 256]         147,584
+│    └─Sequential: 2-12                                 [1, 3, 256, 256]          --
+│    │    └─Conv2d: 3-49                                [1, 64, 256, 256]         36,928
+│    │    └─InstanceNorm2d: 3-50                        [1, 64, 256, 256]         --
+│    │    └─GELU: 3-51                                  [1, 64, 256, 256]         --
+│    │    └─Conv2d: 3-52                                [1, 3, 256, 256]          1,731
+│    │    └─Sigmoid: 3-53                               [1, 3, 256, 256]          --
+=========================================================================================================
+Total params: 16,187,259
+Trainable params: 16,187,259
+Non-trainable params: 0
+Total mult-adds (G): 107.78
+=========================================================================================================
+Input size (MB): 0.79
+Forward/backward pass size (MB): 1408.13
+Params size (MB): 64.75
+Estimated Total Size (MB): 1473.66
+=========================================================================================================
+
+Total Parameters: 16,187,259
+Trainable Parameters: 16,187,259
+
+Training Configuration:
+--------------------------------------------------
+WANDB: {}
+GPU: [0]
+VERBOSE: True
+MODEL: {'SESSION': 'freq_0_edge_0.01_ssim_0.3_no_initial_weights', 'INPUT': 'raw', 'TARGET': 'ref', 'INPUT_CHANNELS': 3, 'NAME': 'edge_v1', 'DATASET_NAME': 'EVUP'}
+OPTIM: {'BATCH_SIZE': 12, 'SEED': 3407, 'NUM_EPOCHS': 500, 'NEPOCH_DECAY': [100], 'LR_INITIAL': 0.0002, 'LR_MIN': 1e-06, 'BETA1': 0.5, 'WANDB': True}
+TRAINING: {'VAL_AFTER_EVERY': 1, 'RESUME': False, 'WEIGHT': '', 'TRAIN_DIR': './image_dirs/EVUP/train', 'VAL_DIR': './image_dirs/EVUP/val', 'SAVE_DIR': './checkpoints/edge_v1/EVUP/freq_0_edge_0.01_ssim_0.3_no_initial_weights', 'PS_W': 256, 'PS_H': 256, 'ORI': False, 'LOG_FILE': 'log_edge_v1_freq_0_edge_0.01_ssim_0.3_no_initial_weights.txt', 'CLIP_GRAD': 0.0, 'MIXED_PRECISION': 'no'}
+TESTING: {'INPUT': 'raw', 'TARGET': 'ref', 'VAL_DIR': '', 'WEIGHT': '', 'SAVE_IMAGES': True, 'RESULT_DIR': '', 'LOG_FILE': 't01.txt'}
+LOG: {'LOG_DIR': './log/edge_v1/freq_0_edge_0.01_ssim_0.3_no_initial_weights'}
+LOSSES: {'USE_PSNR': True, 'PSNR_SCALE': 1.0, 'USE_SSIM': True, 'SSIM_SCALE': 0.3, 'USE_LPIPS': True, 'LPIPS_SCALE': 0.7, 'USE_EDGE': True, 'EDGE_SCALE': 0.01, 'USE_FREQ': False, 'FREQ_SCALE': 0.05}
+"Epoch 1 || PSNR: 10.0330 (best 10.0330 @ 1) | SSIM: 0.1219 (best 0.1219 @ 1) | Loss: 159.0572 (best 159.0572 @ 1) | UCIQE: 0.3848 | UIQM: inf"
+"Epoch 2 || PSNR: 9.6996 (best 10.0330 @ 1) | SSIM: 0.1131 (best 0.1219 @ 1) | Loss: 157.8013 (best 157.8013 @ 2) | UCIQE: 0.4159 | UIQM: inf"
+"Epoch 3 || PSNR: 9.7206 (best 10.0330 @ 1) | SSIM: 0.1149 (best 0.1219 @ 1) | Loss: 158.0823 (best 157.8013 @ 2) | UCIQE: 0.4074 | UIQM: inf"
+"Epoch 4 || PSNR: 9.8238 (best 10.0330 @ 1) | SSIM: 0.1147 (best 0.1219 @ 1) | Loss: 158.3605 (best 157.8013 @ 2) | UCIQE: 0.4020 | UIQM: inf"
+"Epoch 5 || PSNR: 9.7533 (best 10.0330 @ 1) | SSIM: 0.1146 (best 0.1219 @ 1) | Loss: 161.9322 (best 157.8013 @ 2) | UCIQE: 0.4244 | UIQM: inf"
+"Epoch 6 || PSNR: 9.8444 (best 10.0330 @ 1) | SSIM: 0.1152 (best 0.1219 @ 1) | Loss: 156.2203 (best 156.2203 @ 6) | UCIQE: 0.4011 | UIQM: inf"
+"Epoch 7 || PSNR: 9.7344 (best 10.0330 @ 1) | SSIM: 0.1140 (best 0.1219 @ 1) | Loss: 158.6575 (best 156.2203 @ 6) | UCIQE: 0.4075 | UIQM: inf"
+"Epoch 8 || PSNR: 9.7535 (best 10.0330 @ 1) | SSIM: 0.1146 (best 0.1219 @ 1) | Loss: 158.5871 (best 156.2203 @ 6) | UCIQE: 0.3993 | UIQM: inf"
+"Epoch 9 || PSNR: 9.7164 (best 10.0330 @ 1) | SSIM: 0.1140 (best 0.1219 @ 1) | Loss: 158.2670 (best 156.2203 @ 6) | UCIQE: 0.4045 | UIQM: inf"
+"Epoch 10 || PSNR: 9.6696 (best 10.0330 @ 1) | SSIM: 0.1141 (best 0.1219 @ 1) | Loss: 173.3293 (best 156.2203 @ 6) | UCIQE: 0.4130 | UIQM: inf"
+"Epoch 11 || PSNR: 9.5460 (best 10.0330 @ 1) | SSIM: 0.1116 (best 0.1219 @ 1) | Loss: 172.0164 (best 156.2203 @ 6) | UCIQE: 0.3999 | UIQM: inf"
+"Epoch 12 || PSNR: 9.6632 (best 10.0330 @ 1) | SSIM: 0.1107 (best 0.1219 @ 1) | Loss: 162.8769 (best 156.2203 @ 6) | UCIQE: 0.4090 | UIQM: inf"
+"Epoch 13 || PSNR: 9.6292 (best 10.0330 @ 1) | SSIM: 0.1125 (best 0.1219 @ 1) | Loss: 167.6772 (best 156.2203 @ 6) | UCIQE: 0.4142 | UIQM: inf"
+"Epoch 14 || PSNR: 9.7068 (best 10.0330 @ 1) | SSIM: 0.1112 (best 0.1219 @ 1) | Loss: 162.3572 (best 156.2203 @ 6) | UCIQE: 0.4137 | UIQM: inf"
+"Epoch 15 || PSNR: 9.8380 (best 10.0330 @ 1) | SSIM: 0.1188 (best 0.1219 @ 1) | Loss: 174.8590 (best 156.2203 @ 6) | UCIQE: 0.3904 | UIQM: inf"
+"Epoch 16 || PSNR: 9.7219 (best 10.0330 @ 1) | SSIM: 0.1117 (best 0.1219 @ 1) | Loss: 161.2722 (best 156.2203 @ 6) | UCIQE: 0.4271 | UIQM: inf"
+"Epoch 17 || PSNR: 9.5676 (best 10.0330 @ 1) | SSIM: 0.1124 (best 0.1219 @ 1) | Loss: 178.5437 (best 156.2203 @ 6) | UCIQE: 0.3947 | UIQM: inf"
+"Epoch 18 || PSNR: 9.8734 (best 10.0330 @ 1) | SSIM: 0.1207 (best 0.1219 @ 1) | Loss: 164.0074 (best 156.2203 @ 6) | UCIQE: 0.4091 | UIQM: inf"
+"Epoch 19 || PSNR: 9.5965 (best 10.0330 @ 1) | SSIM: 0.1089 (best 0.1219 @ 1) | Loss: 167.5127 (best 156.2203 @ 6) | UCIQE: 0.4044 | UIQM: inf"
+"Epoch 20 || PSNR: 9.8134 (best 10.0330 @ 1) | SSIM: 0.1187 (best 0.1219 @ 1) | Loss: 171.0617 (best 156.2203 @ 6) | UCIQE: 0.4189 | UIQM: inf"
+"Epoch 21 || PSNR: 9.6203 (best 10.0330 @ 1) | SSIM: 0.1111 (best 0.1219 @ 1) | Loss: 172.4583 (best 156.2203 @ 6) | UCIQE: 0.4044 | UIQM: inf"
+"Epoch 22 || PSNR: 9.5478 (best 10.0330 @ 1) | SSIM: 0.1098 (best 0.1219 @ 1) | Loss: 173.7850 (best 156.2203 @ 6) | UCIQE: 0.4070 | UIQM: inf"
+"Epoch 23 || PSNR: 9.5751 (best 10.0330 @ 1) | SSIM: 0.1104 (best 0.1219 @ 1) | Loss: 171.4471 (best 156.2203 @ 6) | UCIQE: 0.4096 | UIQM: inf"

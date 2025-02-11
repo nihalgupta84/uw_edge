@@ -1,0 +1,18 @@
+Model Parameters: 4,356,875
+Trainable Parameters: 4,356,875
+"Epoch 1 || PSNR: 12.6234 (best 12.6234 @ 1) | SSIM: 0.4329 (best 0.4329 @ 1) | Loss: 375.0425 (best 375.0425 @ 1) | UCIQE: 0.1252 | UIQM: 3.8117"
+"Epoch 2 || PSNR: 13.5497 (best 13.5497 @ 2) | SSIM: 0.4456 (best 0.4456 @ 2) | Loss: 302.4522 (best 302.4522 @ 2) | UCIQE: 0.1227 | UIQM: 4.0792"
+"Epoch 3 || PSNR: 13.5887 (best 13.5887 @ 3) | SSIM: 0.4459 (best 0.4459 @ 3) | Loss: 299.2598 (best 299.2598 @ 3) | UCIQE: 0.1219 | UIQM: 4.0779"
+"Epoch 4 || PSNR: 13.5835 (best 13.5887 @ 3) | SSIM: 0.4452 (best 0.4459 @ 3) | Loss: 299.5383 (best 299.2598 @ 3) | UCIQE: 0.1200 | UIQM: 3.9893"
+"Epoch 5 || PSNR: 13.6189 (best 13.6189 @ 5) | SSIM: 0.4461 (best 0.4461 @ 5) | Loss: 297.4862 (best 297.4862 @ 5) | UCIQE: 0.1222 | UIQM: 4.0842"
+"Epoch 6 || PSNR: 13.6382 (best 13.6382 @ 6) | SSIM: 0.4461 (best 0.4461 @ 5) | Loss: 296.2484 (best 296.2484 @ 6) | UCIQE: 0.1219 | UIQM: 4.0469"
+"Epoch 7 || PSNR: 13.5912 (best 13.6382 @ 6) | SSIM: 0.4452 (best 0.4461 @ 5) | Loss: 299.5729 (best 296.2484 @ 6) | UCIQE: 0.1218 | UIQM: 4.0208"
+"Epoch 8 || PSNR: 13.5864 (best 13.6382 @ 6) | SSIM: 0.4456 (best 0.4461 @ 5) | Loss: 300.4145 (best 296.2484 @ 6) | UCIQE: 0.1231 | UIQM: 4.0014"
+"Epoch 9 || PSNR: 13.5963 (best 13.6382 @ 6) | SSIM: 0.4454 (best 0.4461 @ 5) | Loss: 298.6923 (best 296.2484 @ 6) | UCIQE: 0.1229 | UIQM: 4.0574"
+"Epoch 10 || PSNR: 13.6231 (best 13.6382 @ 6) | SSIM: 0.4458 (best 0.4461 @ 5) | Loss: 296.9563 (best 296.2484 @ 6) | UCIQE: 0.1229 | UIQM: 4.0567"
+"Epoch 11 || PSNR: 13.6299 (best 13.6382 @ 6) | SSIM: 0.4456 (best 0.4461 @ 5) | Loss: 296.9960 (best 296.2484 @ 6) | UCIQE: 0.1234 | UIQM: 4.0333"
+"Epoch 12 || PSNR: 13.6171 (best 13.6382 @ 6) | SSIM: 0.4455 (best 0.4461 @ 5) | Loss: 297.7205 (best 296.2484 @ 6) | UCIQE: 0.1232 | UIQM: 4.0116"
+"Epoch 13 || PSNR: 13.6225 (best 13.6382 @ 6) | SSIM: 0.4454 (best 0.4461 @ 5) | Loss: 297.2734 (best 296.2484 @ 6) | UCIQE: 0.1236 | UIQM: 4.0351"
+"Epoch 14 || PSNR: 13.6423 (best 13.6423 @ 14) | SSIM: 0.4455 (best 0.4461 @ 5) | Loss: 295.8569 (best 295.8569 @ 14) | UCIQE: 0.1241 | UIQM: 4.0492"
+"Epoch 15 || PSNR: 13.6271 (best 13.6423 @ 14) | SSIM: 0.4459 (best 0.4461 @ 5) | Loss: 296.8979 (best 295.8569 @ 14) | UCIQE: 0.1254 | UIQM: 4.0881"
+"Epoch 16 || PSNR: 13.6344 (best 13.6423 @ 14) | SSIM: 0.4456 (best 0.4461 @ 5) | Loss: 296.5535 (best 295.8569 @ 14) | UCIQE: 0.1260 | UIQM: 4.0641"
