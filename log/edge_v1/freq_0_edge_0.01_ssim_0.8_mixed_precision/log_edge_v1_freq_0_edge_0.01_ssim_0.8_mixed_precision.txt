@@ -1,0 +1,114 @@
+Model Detailed Summary:
+--------------------------------------------------
+=========================================================================================================
+Layer (type:depth-idx)                                  Output Shape              Param #
+=========================================================================================================
+EdgeModel_V1                                            [1, 3, 256, 256]          --
+├─SCBackbone: 1-1                                       [1, 64, 256, 256]         --
+│    └─Sequential: 2-1                                  [1, 64, 256, 256]         --
+│    │    └─Conv2d: 3-1                                 [1, 64, 256, 256]         9,472
+│    │    └─InstanceNorm2d: 3-2                         [1, 64, 256, 256]         --
+│    │    └─GELU: 3-3                                   [1, 64, 256, 256]         --
+│    │    └─Conv2d: 3-4                                 [1, 64, 256, 256]         36,928
+│    │    └─InstanceNorm2d: 3-5                         [1, 64, 256, 256]         --
+│    │    └─GELU: 3-6                                   [1, 64, 256, 256]         --
+│    └─SCEncoderBlock: 2-2                              [1, 64, 256, 256]         --
+│    │    └─Sequential: 3-7                             [1, 64, 256, 256]         36,928
+│    │    └─SCEdgeDetectionModule: 3-8                  [1, 64, 256, 256]         14,464
+│    │    └─SCAttention: 3-9                            [1, 64, 256, 256]         10,347
+│    │    └─Dropout: 3-10                               [1, 64, 256, 256]         --
+│    │    └─Sequential: 3-11                            [1, 64, 256, 256]         36,928
+│    │    └─Identity: 3-12                              [1, 64, 256, 256]         --
+│    └─Sequential: 2-3                                  [1, 64, 128, 128]         --
+│    │    └─MaxPool2d: 3-13                             [1, 64, 128, 128]         --
+│    │    └─Dropout: 3-14                               [1, 64, 128, 128]         --
+│    └─SCEncoderBlock: 2-4                              [1, 128, 128, 128]        --
+│    │    └─Sequential: 3-15                            [1, 128, 128, 128]        73,856
+│    │    └─SCEdgeDetectionModule: 3-16                 [1, 128, 128, 128]        53,504
+│    │    └─SCAttention: 3-17                           [1, 128, 128, 128]        39,027
+│    │    └─Dropout: 3-18                               [1, 128, 128, 128]        --
+│    │    └─Sequential: 3-19                            [1, 128, 128, 128]        147,584
+│    │    └─Sequential: 3-20                            [1, 128, 128, 128]        8,320
+│    └─Sequential: 2-5                                  [1, 128, 64, 64]          --
+│    │    └─MaxPool2d: 3-21                             [1, 128, 64, 64]          --
+│    │    └─Dropout: 3-22                               [1, 128, 64, 64]          --
+│    └─SCEncoderBlock: 2-6                              [1, 256, 64, 64]          --
+│    │    └─Sequential: 3-23                            [1, 256, 64, 64]          295,168
+│    │    └─SCEdgeDetectionModule: 3-24                 [1, 256, 64, 64]          205,312
+│    │    └─SCAttention: 3-25                           [1, 256, 64, 64]          151,683
+│    │    └─Dropout: 3-26                               [1, 256, 64, 64]          --
+│    │    └─Sequential: 3-27                            [1, 256, 64, 64]          590,080
+│    │    └─Sequential: 3-28                            [1, 256, 64, 64]          33,024
+│    └─Sequential: 2-7                                  [1, 256, 32, 32]          --
+│    │    └─MaxPool2d: 3-29                             [1, 256, 32, 32]          --
+│    │    └─Dropout: 3-30                               [1, 256, 32, 32]          --
+│    └─Sequential: 2-8                                  [1, 512, 32, 32]          --
+│    │    └─SCEncoderBlock: 3-31                        [1, 512, 32, 32]          5,073,571
+│    │    └─SCAttention: 3-32                           [1, 512, 32, 32]          598,179
+│    │    └─Dropout: 3-33                               [1, 512, 32, 32]          --
+│    └─SCDecoderBlock: 2-9                              [1, 256, 64, 64]          --
+│    │    └─InstanceNorm2d: 3-34                        [1, 256, 64, 64]          --
+│    │    └─Sequential: 3-35                            [1, 512, 64, 64]          2,359,808
+│    │    └─Sequential: 3-36                            [1, 768, 64, 64]          590,592
+│    │    └─SCAttention: 3-37                           [1, 768, 64, 64]          1,339,587
+│    │    └─Sequential: 3-38                            [1, 256, 64, 64]          2,359,808
+│    └─SCDecoderBlock: 2-10                             [1, 128, 128, 128]        --
+│    │    └─InstanceNorm2d: 3-39                        [1, 128, 128, 128]        --
+│    │    └─Sequential: 3-40                            [1, 256, 128, 128]        590,080
+│    │    └─Sequential: 3-41                            [1, 384, 128, 128]        147,840
+│    │    └─SCAttention: 3-42                           [1, 384, 128, 128]        338,067
+│    │    └─Sequential: 3-43                            [1, 128, 128, 128]        590,080
+│    └─SCDecoderBlock: 2-11                             [1, 64, 256, 256]         --
+│    │    └─InstanceNorm2d: 3-44                        [1, 64, 256, 256]         --
+│    │    └─Sequential: 3-45                            [1, 128, 256, 256]        147,584
+│    │    └─Sequential: 3-46                            [1, 192, 256, 256]        37,056
+│    │    └─SCAttention: 3-47                           [1, 192, 256, 256]        86,139
+│    │    └─Sequential: 3-48                            [1, 64, 256, 256]         147,584
+│    └─Sequential: 2-12                                 [1, 3, 256, 256]          --
+│    │    └─Conv2d: 3-49                                [1, 64, 256, 256]         36,928
+│    │    └─InstanceNorm2d: 3-50                        [1, 64, 256, 256]         --
+│    │    └─GELU: 3-51                                  [1, 64, 256, 256]         --
+│    │    └─Conv2d: 3-52                                [1, 3, 256, 256]          1,731
+│    │    └─Sigmoid: 3-53                               [1, 3, 256, 256]          --
+=========================================================================================================
+Total params: 16,187,259
+Trainable params: 16,187,259
+Non-trainable params: 0
+Total mult-adds (G): 107.78
+=========================================================================================================
+Input size (MB): 0.79
+Forward/backward pass size (MB): 1408.13
+Params size (MB): 64.75
+Estimated Total Size (MB): 1473.66
+=========================================================================================================
+
+Total Parameters: 16,187,259
+Trainable Parameters: 16,187,259
+
+Training Configuration:
+--------------------------------------------------
+WANDB: {}
+GPU: [0]
+VERBOSE: True
+MODEL: {'SESSION': 'freq_0_edge_0.01_ssim_0.8_mixed_precision', 'INPUT': 'raw', 'TARGET': 'ref', 'INPUT_CHANNELS': 3, 'NAME': 'edge_v1', 'DATASET_NAME': 'uieb'}
+OPTIM: {'BATCH_SIZE': 20, 'SEED': 3407, 'NUM_EPOCHS': 300, 'NEPOCH_DECAY': [100], 'LR_INITIAL': 0.0002, 'LR_MIN': 1e-06, 'BETA1': 0.5, 'WANDB': True}
+TRAINING: {'VAL_AFTER_EVERY': 1, 'RESUME': True, 'WEIGHT': '', 'TRAIN_DIR': './image_dirs/UIEB/train', 'VAL_DIR': './image_dirs/UIEB/val', 'SAVE_DIR': './checkpoints/edge_v1/uieb/freq_0_edge_0.01_ssim_0.8_mixed_precision', 'PS_W': 256, 'PS_H': 256, 'ORI': False, 'LOG_FILE': 'log_edge_v1_freq_0_edge_0.01_ssim_0.8_mixed_precision.txt', 'CLIP_GRAD': 0.0, 'MIXED_PRECISION': 'fp16'}
+TESTING: {'INPUT': 'raw', 'TARGET': 'ref', 'VAL_DIR': '', 'WEIGHT': '', 'SAVE_IMAGES': True, 'RESULT_DIR': '', 'LOG_FILE': 't01.txt'}
+LOG: {'LOG_DIR': './log/edge_v1/freq_0_edge_0.01_ssim_0.8_mixed_precision'}
+LOSSES: {'USE_PSNR': True, 'PSNR_SCALE': 1.0, 'USE_SSIM': True, 'SSIM_SCALE': 0.8, 'USE_LPIPS': True, 'LPIPS_SCALE': 0.7, 'USE_EDGE': True, 'EDGE_SCALE': 0.01, 'USE_FREQ': False, 'FREQ_SCALE': 0.05}
+"Epoch 7 || PSNR: 7.3331 (best 7.3331 @ 7) | SSIM: -0.0968 (best 0.0000 @ 0) | Loss: 36.9096 (best 36.9096 @ 7) | UCIQE: 0.4278 | UIQM: 3.6962"
+"Epoch 8 || PSNR: 7.2312 (best 7.3331 @ 7) | SSIM: -0.1030 (best 0.0000 @ 0) | Loss: 34.7549 (best 34.7549 @ 8) | UCIQE: 0.4312 | UIQM: 3.6572"
+"Epoch 9 || PSNR: 7.2178 (best 7.3331 @ 7) | SSIM: -0.1034 (best 0.0000 @ 0) | Loss: 34.3372 (best 34.3372 @ 9) | UCIQE: 0.4394 | UIQM: 3.6753"
+"Epoch 10 || PSNR: 7.4823 (best 7.4823 @ 10) | SSIM: -0.0996 (best 0.0000 @ 0) | Loss: 35.4362 (best 34.3372 @ 9) | UCIQE: 0.4285 | UIQM: 3.6426"
+"Epoch 11 || PSNR: 7.2839 (best 7.4823 @ 10) | SSIM: -0.1106 (best 0.0000 @ 0) | Loss: 36.3152 (best 34.3372 @ 9) | UCIQE: 0.4269 | UIQM: 3.6328"
+"Epoch 12 || PSNR: 7.2453 (best 7.4823 @ 10) | SSIM: -0.1144 (best 0.0000 @ 0) | Loss: 33.9318 (best 33.9318 @ 12) | UCIQE: 0.4370 | UIQM: 3.6544"
+"Epoch 13 || PSNR: 7.1629 (best 7.4823 @ 10) | SSIM: -0.1134 (best 0.0000 @ 0) | Loss: 32.0993 (best 32.0993 @ 13) | UCIQE: 0.4309 | UIQM: 3.6718"
+"Epoch 14 || PSNR: 7.1618 (best 7.4823 @ 10) | SSIM: -0.1130 (best 0.0000 @ 0) | Loss: 35.3175 (best 32.0993 @ 13) | UCIQE: 0.4400 | UIQM: 3.7433"
+"Epoch 15 || PSNR: 7.2129 (best 7.4823 @ 10) | SSIM: -0.1162 (best 0.0000 @ 0) | Loss: 35.0587 (best 32.0993 @ 13) | UCIQE: 0.4300 | UIQM: 3.6420"
+"Epoch 16 || PSNR: 7.3246 (best 7.4823 @ 10) | SSIM: -0.1194 (best 0.0000 @ 0) | Loss: 33.7981 (best 32.0993 @ 13) | UCIQE: 0.4274 | UIQM: 3.6360"
+"Epoch 17 || PSNR: 7.1542 (best 7.4823 @ 10) | SSIM: -0.1122 (best 0.0000 @ 0) | Loss: 31.7549 (best 31.7549 @ 17) | UCIQE: 0.4456 | UIQM: 3.6981"
+"Epoch 18 || PSNR: 7.1510 (best 7.4823 @ 10) | SSIM: -0.1221 (best 0.0000 @ 0) | Loss: 28.9805 (best 28.9805 @ 18) | UCIQE: 0.4342 | UIQM: 3.7089"
+"Epoch 19 || PSNR: 6.9433 (best 7.4823 @ 10) | SSIM: -0.1250 (best 0.0000 @ 0) | Loss: 31.3669 (best 28.9805 @ 18) | UCIQE: 0.4388 | UIQM: 3.7738"
+"Epoch 20 || PSNR: 7.4287 (best 7.4823 @ 10) | SSIM: -0.1041 (best 0.0000 @ 0) | Loss: 32.0816 (best 28.9805 @ 18) | UCIQE: 0.4410 | UIQM: 3.6729"
+"Epoch 21 || PSNR: 7.5496 (best 7.5496 @ 21) | SSIM: -0.1171 (best 0.0000 @ 0) | Loss: 33.1557 (best 28.9805 @ 18) | UCIQE: 0.4177 | UIQM: 3.6166"
+"Epoch 22 || PSNR: 7.4661 (best 7.5496 @ 21) | SSIM: -0.1138 (best 0.0000 @ 0) | Loss: 30.7172 (best 28.9805 @ 18) | UCIQE: 0.4309 | UIQM: 3.7049"

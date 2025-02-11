@@ -32,6 +32,13 @@ class Config(object):
         self._C.MODEL.INPUT = 'raw'
         self._C.MODEL.TARGET = 'ref'
         self._C.MODEL.INPUT_CHANNELS = 3
+        self._C.MODEL.BASE_CHANNELS = 64
+        self._C.MODEL.EDGE_MODULE = True
+        self._C.MODEL.ATTENTION_MODULE = True
+        self._C.MODEL.EDGE_VK = True
+        self._C.MODEL.EDGE_HK = True
+        self._C.MODEL.EDGE_CK = True
+        self._C.MODEL.INIT_WEIGHTS = True
         # NEW: Specify default model type
         self._C.MODEL.NAME = 'version3'
         self._C.MODEL.DATASET_NAME = 'UIEB'
@@ -111,9 +118,10 @@ class Config(object):
                 self._C.MODEL.DATASET_NAME,
                 self._C.MODEL.SESSION
             )
-            self._C.TRAINING.LOG_FILE = f"log_{self._C.MODEL.NAME}_{self._C.MODEL.SESSION}.txt"
+            self._C.TRAINING.LOG_FILE = f"log_{self._C.MODEL.DATASET_NAME}_{self._C.MODEL.NAME}_{self._C.MODEL.SESSION}.txt"
             self._C.LOG.LOG_DIR = os.path.join(
                 self._C.LOG.LOG_DIR,
                 self._C.MODEL.NAME,
+                self._C.MODEL.DATASET_NAME,
                 self._C.MODEL.SESSION
             )

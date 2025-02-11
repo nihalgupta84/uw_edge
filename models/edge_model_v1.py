@@ -7,6 +7,7 @@ from thop import profile, clever_format
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint
+from torchinfo import summary
 
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -318,7 +319,7 @@ class SCBackbone(nn.Module):
             nn.Sigmoid()
         )
         self.apply(init_weights)
-        
+
     def forward(self, x):
         """
         Return: (featrueHR, finalImage)
@@ -412,8 +413,9 @@ class EdgeModel_V1(nn.Module):
 def test_scbackbone():
     model = SCBackbone().to('cuda')
     inp = torch.randn(1, 3, 256, 256).to('cuda')
-
+    summary(model, input_size=(1, 3, 256, 256))
     # Forward pass with intermediate shape prints
+    print(f"/n scbackbone")
     x0 = model.init_conv(inp)
     print("After init_conv:", x0.shape)
 
@@ -452,7 +454,7 @@ def test_scbackbone():
 def test_scencoderblock():
     model = SCEncoderBlock(3, 64).to('cuda')
     inp = torch.randn(1, 3, 256, 256).to('cuda')
-
+    print(f"/n scencoderblock")
     out = model.conv1(inp)
     print("After conv1:", out.shape)
 
@@ -481,7 +483,7 @@ def test_scdecoderblock():
     model = SCDecoderBlock(128, 64, 64).to('cuda')
     inp = torch.randn(1, 128, 64, 64).to('cuda')
     skip = torch.randn(1, 64, 128, 128).to('cuda')
-
+    print(f"/n scdecoderblock")
     skip = model.skip_norm(skip)
     print("After skip_norm:", skip.shape)
 
@@ -507,7 +509,7 @@ def test_scdecoderblock():
 def test_scattention():
     model = SCAttention(64).to('cuda')
     inp = torch.randn(1, 64, 128, 128).to('cuda')
-
+    print(f"/n scattention")
     c_att = model.channel_gate(inp)
     print("After channel_gate:", c_att.shape)
 
@@ -544,7 +546,7 @@ def test_scattention():
 def test_scedgedetectionmodule():
     model = SCEdgeDetectionModule(64).to('cuda')
     inp = torch.randn(1, 64, 128, 128).to('cuda')
-
+    print(f"/n scedgedetectionmodule")
     cdc_out = model.cdc(inp)
     print("After cdc:", cdc_out.shape)
 
