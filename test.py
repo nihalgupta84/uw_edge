@@ -1,6 +1,7 @@
 import json
 import warnings
-
+import os
+import sys
 import torchvision
 
 from metrics.uciqe import batch_uciqe
@@ -14,34 +15,46 @@ from tqdm import tqdm
 
 from config import Config
 from data import get_data
-from models import *
-
-from utils import *
+from models import create_model
+from utils import seed_everything, load_checkpoint
+import torch
 
 warnings.filterwarnings('ignore')
 
 
 def test():
-    opt = Config('config.yml')
-    seed_everything(opt.OPTIM.SEED)
+    # Collect command-line override arguments after "--config_yaml config.yml"
+    override_list = []
+    if len(sys.argv) > 3:
+        override_list = sys.argv[3:]
+    opt = Config('config.yml', override_list)
+    opt.finalize_config()
 
     accelerator = Accelerator()
     device = accelerator.device
 
+    seed_everything(opt.OPTIM.SEED)
     criterion_lpips = LearnedPerceptualImagePatchSimilarity(net_type='alex', normalize=True).to(device)
 
     # Data Loader
     val_dir = opt.TESTING.VAL_DIR
-
-    val_dataset = get_data(val_dir, opt.TESTING.INPUT, opt.TESTING.TARGET, 'test', opt.TRAINING.ORI,
-                           {'w': opt.TRAINING.PS_W, 'h': opt.TRAINING.PS_H})
-    testloader = DataLoader(dataset=val_dataset, batch_size=1, shuffle=False, num_workers=8, drop_last=False,
-                            pin_memory=True)
+    if not val_dir:
+        print("No validation directory specified. Skipping dataset loading.")
+        val_dataset = []
+    else:
+        val_dataset = get_data(val_dir, opt.TESTING.INPUT, opt.TESTING.TARGET, 'test', opt.TRAINING.ORI,
+                               {'w': opt.TRAINING.PS_W, 'h': opt.TRAINING.PS_H})
+    testloader = DataLoader(dataset=val_dataset, batch_size=1, shuffle=False, num_workers=8,
+                            drop_last=False, pin_memory=True) if val_dataset else []
 
     # Model & Metrics
-    model = Model()
+    model = create_model(opt.MODEL.NAME)
 
-    load_checkpoint(model, opt.TESTING.WEIGHT)
+    weight_path = opt.TESTING.WEIGHT
+    if not weight_path or not os.path.exists(weight_path):
+        raise FileNotFoundError(f"Checkpoint file '{weight_path}' not found or invalid path.")
+
+    load_checkpoint(model, None, None, weight_path, device)
 
     model, testloader = accelerator.prepare(model, testloader)
 
@@ -84,6 +97,7 @@ def test():
                  format(stat_psnr, stat_ssim, stat_lpips, stat_uciqe, stat_uiqm))
     print(test_info)
     print(log_stats)
+    os.makedirs(opt.LOG.LOG_DIR, exist_ok=True)
     with open(os.path.join(opt.LOG.LOG_DIR, opt.TESTING.LOG_FILE), mode='a', encoding='utf-8') as f:
         f.write(json.dumps(test_info) + '\n')
         f.write(json.dumps(log_stats) + '\n')

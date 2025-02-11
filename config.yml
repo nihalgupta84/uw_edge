@@ -38,7 +38,7 @@ TESTING:
   VAL_DIR: ''     # path to testing data
   WEIGHT: ''
   SAVE_IMAGES: True
-  RESULT_DIR: ''
+  RESULT_DIR: 'results'
   LOG_FILE: 't01.txt'
 
 LOG:
