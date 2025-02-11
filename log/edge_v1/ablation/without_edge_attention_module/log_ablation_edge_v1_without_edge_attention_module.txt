@@ -1,0 +1,162 @@
+
+==================================================
+NEW TRAINING SESSION: 2025-02-11 18:10:56.894649
+Command line: train.py --config_yaml=config.yml MODEL.NAME edge_v1 MODEL.DATASET_NAME ablation MODEL.SESSION without_edge_attention_module MODEL.EDGE_MODULE False TRAINING.VAL_AFTER_EVERY 20
+Configuration:
+GPU: [0]
+LOG:
+  LOG_DIR: ./log/edge_v1/ablation/without_edge_attention_module
+LOSSES:
+  EDGE_SCALE: 0.05
+  FREQ_SCALE: 0.0
+  LPIPS_SCALE: 0.7
+  PSNR_SCALE: 1.0
+  SSIM_SCALE: 0.9
+  USE_EDGE: True
+  USE_FREQ: False
+  USE_LPIPS: True
+  USE_PSNR: True
+  USE_SSIM: True
+MODEL:
+  ATTENTION_MODULE: True
+  BASE_CHANNELS: 64
+  DATASET_NAME: ablation
+  EDGE_CK: True
+  EDGE_HK: True
+  EDGE_MODULE: False
+  EDGE_VK: True
+  INIT_WEIGHTS: True
+  INPUT: raw
+  INPUT_CHANNELS: 3
+  NAME: edge_v1
+  SESSION: without_edge_attention_module
+  TARGET: ref
+OPTIM:
+  BATCH_SIZE: 12
+  BETA1: 0.5
+  LR_INITIAL: 0.0002
+  LR_MIN: 1e-06
+  NEPOCH_DECAY: [100]
+  NUM_EPOCHS: 300
+  SEED: 3407
+  WANDB: True
+TESTING:
+  INPUT: raw
+  LOG_FILE: t01.txt
+  RESULT_DIR: results
+  SAVE_IMAGES: True
+  TARGET: ref
+  VAL_DIR: 
+  WEIGHT: 
+TRAINING:
+  CLIP_GRAD: 0.0
+  LOG_FILE: log_ablation_edge_v1_without_edge_attention_module.txt
+  MIXED_PRECISION: no
+  ORI: False
+  PS_H: 256
+  PS_W: 256
+  RESUME: False
+  SAVE_DIR: ./checkpoints/edge_v1/ablation/without_edge_attention_module
+  TRAIN_DIR: ./image_dirs/UIEB/train
+  VAL_AFTER_EVERY: 20
+  VAL_DIR: ./image_dirs/UIEB/val
+  WEIGHT: 
+VERBOSE: True
+WANDB:
+  
+==================================================
+Model Detailed Summary:
+--------------------------------------------------
+=========================================================================================================
+Layer (type:depth-idx)                                  Output Shape              Param #
+=========================================================================================================
+EdgeModel_V1                                            [1, 3, 256, 256]          --
+├─SCBackbone: 1-1                                       [1, 64, 256, 256]         --
+│    └─Sequential: 2-1                                  [1, 64, 256, 256]         --
+│    │    └─Conv2d: 3-1                                 [1, 64, 256, 256]         9,472
+│    │    └─InstanceNorm2d: 3-2                         [1, 64, 256, 256]         --
+│    │    └─GELU: 3-3                                   [1, 64, 256, 256]         --
+│    │    └─Conv2d: 3-4                                 [1, 64, 256, 256]         36,928
+│    │    └─InstanceNorm2d: 3-5                         [1, 64, 256, 256]         --
+│    │    └─GELU: 3-6                                   [1, 64, 256, 256]         --
+│    └─SCEncoderBlock: 2-2                              [1, 64, 256, 256]         --
+│    │    └─Sequential: 3-7                             [1, 64, 256, 256]         36,928
+│    │    └─SCAttention: 3-8                            [1, 64, 256, 256]         10,347
+│    │    └─Dropout: 3-9                                [1, 64, 256, 256]         --
+│    │    └─Sequential: 3-10                            [1, 64, 256, 256]         36,928
+│    │    └─Identity: 3-11                              [1, 64, 256, 256]         --
+│    └─Sequential: 2-3                                  [1, 64, 128, 128]         --
+│    │    └─MaxPool2d: 3-12                             [1, 64, 128, 128]         --
+│    │    └─Dropout: 3-13                               [1, 64, 128, 128]         --
+│    └─SCEncoderBlock: 2-4                              [1, 128, 128, 128]        --
+│    │    └─Sequential: 3-14                            [1, 128, 128, 128]        73,856
+│    │    └─SCAttention: 3-15                           [1, 128, 128, 128]        39,027
+│    │    └─Dropout: 3-16                               [1, 128, 128, 128]        --
+│    │    └─Sequential: 3-17                            [1, 128, 128, 128]        147,584
+│    │    └─Sequential: 3-18                            [1, 128, 128, 128]        8,320
+│    └─Sequential: 2-5                                  [1, 128, 64, 64]          --
+│    │    └─MaxPool2d: 3-19                             [1, 128, 64, 64]          --
+│    │    └─Dropout: 3-20                               [1, 128, 64, 64]          --
+│    └─SCEncoderBlock: 2-6                              [1, 256, 64, 64]          --
+│    │    └─Sequential: 3-21                            [1, 256, 64, 64]          295,168
+│    │    └─SCAttention: 3-22                           [1, 256, 64, 64]          151,683
+│    │    └─Dropout: 3-23                               [1, 256, 64, 64]          --
+│    │    └─Sequential: 3-24                            [1, 256, 64, 64]          590,080
+│    │    └─Sequential: 3-25                            [1, 256, 64, 64]          33,024
+│    └─Sequential: 2-7                                  [1, 256, 32, 32]          --
+│    │    └─MaxPool2d: 3-26                             [1, 256, 32, 32]          --
+│    │    └─Dropout: 3-27                               [1, 256, 32, 32]          --
+│    └─Sequential: 2-8                                  [1, 512, 32, 32]          --
+│    │    └─SCEncoderBlock: 3-28                        [1, 512, 32, 32]          4,269,731
+│    │    └─SCAttention: 3-29                           [1, 512, 32, 32]          598,179
+│    │    └─Dropout: 3-30                               [1, 512, 32, 32]          --
+│    └─SCDecoderBlock: 2-9                              [1, 256, 64, 64]          --
+│    │    └─InstanceNorm2d: 3-31                        [1, 256, 64, 64]          --
+│    │    └─Sequential: 3-32                            [1, 512, 64, 64]          2,359,808
+│    │    └─Sequential: 3-33                            [1, 768, 64, 64]          590,592
+│    │    └─SCAttention: 3-34                           [1, 768, 64, 64]          1,339,587
+│    │    └─Sequential: 3-35                            [1, 256, 64, 64]          2,359,808
+│    └─SCDecoderBlock: 2-10                             [1, 128, 128, 128]        --
+│    │    └─InstanceNorm2d: 3-36                        [1, 128, 128, 128]        --
+│    │    └─Sequential: 3-37                            [1, 256, 128, 128]        590,080
+│    │    └─Sequential: 3-38                            [1, 384, 128, 128]        147,840
+│    │    └─SCAttention: 3-39                           [1, 384, 128, 128]        338,067
+│    │    └─Sequential: 3-40                            [1, 128, 128, 128]        590,080
+│    └─SCDecoderBlock: 2-11                             [1, 64, 256, 256]         --
+│    │    └─InstanceNorm2d: 3-41                        [1, 64, 256, 256]         --
+│    │    └─Sequential: 3-42                            [1, 128, 256, 256]        147,584
+│    │    └─Sequential: 3-43                            [1, 192, 256, 256]        37,056
+│    │    └─SCAttention: 3-44                           [1, 192, 256, 256]        86,139
+│    │    └─Sequential: 3-45                            [1, 64, 256, 256]         147,584
+│    └─Sequential: 2-12                                 [1, 3, 256, 256]          --
+│    │    └─Conv2d: 3-46                                [1, 64, 256, 256]         36,928
+│    │    └─InstanceNorm2d: 3-47                        [1, 64, 256, 256]         --
+│    │    └─GELU: 3-48                                  [1, 64, 256, 256]         --
+│    │    └─Conv2d: 3-49                                [1, 3, 256, 256]          1,731
+│    │    └─Sigmoid: 3-50                               [1, 3, 256, 256]          --
+=========================================================================================================
+Total params: 15,110,139
+Trainable params: 15,110,139
+Non-trainable params: 0
+Total mult-adds (G): 104.51
+=========================================================================================================
+Input size (MB): 0.79
+Forward/backward pass size (MB): 1156.47
+Params size (MB): 60.44
+Estimated Total Size (MB): 1217.70
+=========================================================================================================
+
+Total Parameters: 15,110,139
+Trainable Parameters: 15,110,139
+
+Training Configuration:
+--------------------------------------------------
+WANDB: {}
+GPU: [0]
+VERBOSE: True
+MODEL: {'SESSION': 'without_edge_attention_module', 'INPUT': 'raw', 'TARGET': 'ref', 'INPUT_CHANNELS': 3, 'BASE_CHANNELS': 64, 'EDGE_MODULE': False, 'ATTENTION_MODULE': True, 'EDGE_VK': True, 'EDGE_HK': True, 'EDGE_CK': True, 'INIT_WEIGHTS': True, 'NAME': 'edge_v1', 'DATASET_NAME': 'ablation'}
+OPTIM: {'BATCH_SIZE': 12, 'SEED': 3407, 'NUM_EPOCHS': 300, 'NEPOCH_DECAY': [100], 'LR_INITIAL': 0.0002, 'LR_MIN': 1e-06, 'BETA1': 0.5, 'WANDB': True}
+TRAINING: {'VAL_AFTER_EVERY': 20, 'RESUME': False, 'WEIGHT': '', 'TRAIN_DIR': './image_dirs/UIEB/train', 'VAL_DIR': './image_dirs/UIEB/val', 'SAVE_DIR': './checkpoints/edge_v1/ablation/without_edge_attention_module', 'PS_W': 256, 'PS_H': 256, 'ORI': False, 'LOG_FILE': 'log_ablation_edge_v1_without_edge_attention_module.txt', 'CLIP_GRAD': 0.0, 'MIXED_PRECISION': 'no'}
+TESTING: {'INPUT': 'raw', 'TARGET': 'ref', 'VAL_DIR': '', 'WEIGHT': '', 'SAVE_IMAGES': True, 'RESULT_DIR': 'results', 'LOG_FILE': 't01.txt'}
+LOG: {'LOG_DIR': './log/edge_v1/ablation/without_edge_attention_module'}
+LOSSES: {'USE_PSNR': True, 'PSNR_SCALE': 1.0, 'USE_SSIM': True, 'SSIM_SCALE': 0.9, 'USE_LPIPS': True, 'LPIPS_SCALE': 0.7, 'USE_EDGE': True, 'EDGE_SCALE': 0.05, 'USE_FREQ': False, 'FREQ_SCALE': 0.0}

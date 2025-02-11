@@ -1,4 +1,3 @@
-
 #File: config.yml
 VERBOSE: True
 
@@ -9,9 +8,16 @@ MODEL:
   INPUT_CHANNELS: 3
   NAME: 'model'  
   DATASET_NAME: 'UIEB'  # NEW: Specify the dataset name
+  BASE_CHANNELS: 64
+  EDGE_MODULE: True
+  ATTENTION_MODULE: True
+  EDGE_VK: True
+  EDGE_HK: True
+  EDGE_CK: True
+  INIT_WEIGHTS: True
 # Optimization arguments.
 OPTIM:
-  BATCH_SIZE: 24
+  BATCH_SIZE: 12
   NUM_EPOCHS: 300
   LR_INITIAL: 2e-4
   LR_MIN: 1e-6
@@ -48,10 +54,10 @@ LOSSES:
   USE_PSNR: True
   PSNR_SCALE: 1.0
   USE_SSIM: True
-  SSIM_SCALE: 0.8
+  SSIM_SCALE: 0.9
   USE_LPIPS: True
   LPIPS_SCALE: 0.7
   USE_EDGE: True
-  EDGE_SCALE: 0.01
-  USE_FREQ: True
-  FREQ_SCALE: 0.05
+  EDGE_SCALE: 0.05
+  USE_FREQ: False
+  FREQ_SCALE: 0.00

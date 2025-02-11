@@ -234,3 +234,7 @@ LOSSES: {'USE_PSNR': True, 'PSNR_SCALE': 1.0, 'USE_SSIM': True, 'SSIM_SCALE': 0.
 "Epoch 76 || PSNR: 11.7806 (best 12.1487 @ 22) | SSIM: 0.4981 (best 0.5020 @ 72) | Loss: 22.2925 (best 20.7943 @ 72) | UCIQE: 0.4149 | UIQM: 3.9122"
 "Epoch 77 || PSNR: 11.9116 (best 12.1487 @ 22) | SSIM: 0.5014 (best 0.5020 @ 72) | Loss: 21.3285 (best 20.7943 @ 72) | UCIQE: 0.4067 | UIQM: inf"
 "Epoch 78 || PSNR: 11.8971 (best 12.1487 @ 22) | SSIM: 0.5002 (best 0.5020 @ 72) | Loss: 22.0963 (best 20.7943 @ 72) | UCIQE: 0.4059 | UIQM: 3.9272"
+"Epoch 79 || PSNR: 11.7941 (best 12.1487 @ 22) | SSIM: 0.5017 (best 0.5020 @ 72) | Loss: 22.0875 (best 20.7943 @ 72) | UCIQE: 0.4104 | UIQM: inf"
+"Epoch 80 || PSNR: 12.1425 (best 12.1487 @ 22) | SSIM: 0.5013 (best 0.5020 @ 72) | Loss: 25.6242 (best 20.7943 @ 72) | UCIQE: 0.4072 | UIQM: 3.8965"
+"Epoch 81 || PSNR: 11.8422 (best 12.1487 @ 22) | SSIM: 0.5018 (best 0.5020 @ 72) | Loss: 21.5240 (best 20.7943 @ 72) | UCIQE: 0.4057 | UIQM: 3.9123"
+"Epoch 82 || PSNR: 11.9254 (best 12.1487 @ 22) | SSIM: 0.5004 (best 0.5020 @ 72) | Loss: 22.5959 (best 20.7943 @ 72) | UCIQE: 0.4050 | UIQM: 3.9152"

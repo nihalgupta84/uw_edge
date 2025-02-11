@@ -1,4 +1,3 @@
-
 # File: models/CCLNet/ScaterringBranch/uw_edge_model.py
 
 import torch
@@ -19,8 +18,12 @@ class SCEdgeDetectionModule(nn.Module):
     """
     Edge Detection Module with improved numerical stability and weight normalization.
     """
-    def __init__(self, channels):
+    def __init__(self, channels, use_ck=True, use_hk=True, use_vk=True):
         super(SCEdgeDetectionModule, self).__init__()
+
+        self.use_ck = use_ck
+        self.use_hk = use_hk
+        self.use_vk = use_vk
 
         # Depthwise conv with weight normalization
         self.cdc = nn.utils.weight_norm(
@@ -76,9 +79,9 @@ class SCEdgeDetectionModule(nn.Module):
 
     def forward(self, x):
         # Gradient checkpoint for memory saving
-        cdc_out = torch.utils.checkpoint.checkpoint(self.cdc, x)
-        hdc_out = torch.utils.checkpoint.checkpoint(self.hdc, x)
-        vdc_out = torch.utils.checkpoint.checkpoint(self.vdc, x)
+        cdc_out = torch.utils.checkpoint.checkpoint(self.cdc, x) if self.use_ck else torch.zeros_like(x)
+        hdc_out = torch.utils.checkpoint.checkpoint(self.hdc, x) if self.use_hk else torch.zeros_like(x)
+        vdc_out = torch.utils.checkpoint.checkpoint(self.vdc, x) if self.use_vk else torch.zeros_like(x)
 
         # Fuse
         edge_feats = torch.cat([cdc_out, hdc_out, vdc_out], dim=1)
@@ -212,8 +215,11 @@ class SCEncoderBlock(nn.Module):
     """
     Encoder block with edge detection + attention + conv.
     """
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, use_edge_module=True, use_attention_module=True):
         super(SCEncoderBlock, self).__init__()
+
+        self.use_edge_module = use_edge_module
+        self.use_attention_module = use_attention_module
 
         # First conv
         self.conv1 = nn.Sequential(
@@ -223,8 +229,8 @@ class SCEncoderBlock(nn.Module):
         )
 
         # Edge detection + attention
-        self.edge_detect = SCEdgeDetectionModule(out_channels)
-        self.attention   = SCAttention(out_channels)
+        self.edge_detect = SCEdgeDetectionModule(out_channels) if use_edge_module else nn.Identity()
+        self.attention   = SCAttention(out_channels) if use_attention_module else nn.Identity()
 
         # Second conv
         self.conv2 = nn.Sequential(
@@ -248,8 +254,8 @@ class SCEncoderBlock(nn.Module):
         out = self.conv1(x)
 
         # Edge + attention (checkpointing)
-        e_feats = torch.utils.checkpoint.checkpoint(self.edge_detect, out)
-        a_feats = torch.utils.checkpoint.checkpoint(self.attention, out)
+        e_feats = torch.utils.checkpoint.checkpoint(self.edge_detect, out) if not isinstance(self.edge_detect, nn.Identity) else torch.zeros_like(out)
+        a_feats = torch.utils.checkpoint.checkpoint(self.attention, out)   if not isinstance(self.attention, nn.Identity) else torch.zeros_like(out)
         out = out + e_feats + a_feats
 
         out = self.dropout(out)
@@ -262,7 +268,7 @@ class SCEncoderBlock(nn.Module):
         out = out + skip
 
         return out
-def init_weights(m):
+def init_model_weights(m):
     if isinstance(m, nn.Conv2d):
         nn.init.kaiming_normal_(m.weight, mode='fan_out')
         if m.bias is not None:
@@ -276,8 +282,15 @@ class SCBackbone(nn.Module):
     Full Enhanced HRNet-like backbone with 3 encoders, bottleneck, 3 decoders.
     We produce a final image with Tanh, plus an intermediate feature (featrueHR).
     """
-    def __init__(self, in_ch=3, base_ch=64):
+    def __init__(self, in_ch=3, base_ch=64, use_edge_module=True, use_attention_module=True,
+                 use_ck=True, use_hk=True, use_vk=True, init_weights=True):
         super(SCBackbone, self).__init__()
+
+        self.use_edge_module = use_edge_module
+        self.use_attention_module = use_attention_module
+        self.use_ck = use_ck
+        self.use_hk = use_hk
+        self.use_vk = use_vk
 
         self.init_conv = nn.Sequential(
             nn.Conv2d(in_ch, base_ch, kernel_size=7, padding=3),
@@ -289,18 +302,18 @@ class SCBackbone(nn.Module):
         )
 
         # Encoders
-        self.encoder1 = SCEncoderBlock(base_ch, base_ch)
+        self.encoder1 = SCEncoderBlock(base_ch, base_ch, use_edge_module, use_attention_module)
         self.down1 = nn.Sequential(nn.MaxPool2d(2), nn.Dropout(0.1))
 
-        self.encoder2 = SCEncoderBlock(base_ch, base_ch * 2)
+        self.encoder2 = SCEncoderBlock(base_ch, base_ch * 2, use_edge_module, use_attention_module)
         self.down2 = nn.Sequential(nn.MaxPool2d(2), nn.Dropout(0.1))
 
-        self.encoder3 = SCEncoderBlock(base_ch * 2, base_ch * 4)
+        self.encoder3 = SCEncoderBlock(base_ch * 2, base_ch * 4, use_edge_module, use_attention_module)
         self.down3 = nn.Sequential(nn.MaxPool2d(2), nn.Dropout(0.1))
 
         # Bottleneck
         self.bottleneck = nn.Sequential(
-            SCEncoderBlock(base_ch * 4, base_ch * 8),
+            SCEncoderBlock(base_ch * 4, base_ch * 8, use_edge_module, use_attention_module),
             SCAttention(base_ch * 8),
             nn.Dropout(0.2)
         )
@@ -318,7 +331,8 @@ class SCBackbone(nn.Module):
             nn.Conv2d(base_ch, in_ch, kernel_size=3, padding=1),
             nn.Sigmoid()
         )
-        self.apply(init_weights)
+        if init_weights:
+            self.apply(init_model_weights)
 
     def forward(self, x):
         """
@@ -365,12 +379,20 @@ class EdgeModel_V1(nn.Module):
     to maintain compatibility with HRNet.py usage:
         featrueHR, hazeRemoval = self.hfBranch(input)
     """
-    def __init__(self, in_channels=3, base_channels=64):
+    def __init__(self, in_channels=3, base_channels=64, use_edge_module=True, use_attention_module=True,
+                 use_ck=True, use_hk=True, use_vk=True, init_weights=True):
         super(EdgeModel_V1, self).__init__()
         # Instantiating our new backbone
         self.ch_in = 3
         self.down_depth = 2        
-        self.backbone = SCBackbone(in_ch=self.ch_in, base_ch=64)
+        self.backbone = SCBackbone(in_ch=self.ch_in,
+                                   base_ch=base_channels,
+                                   use_edge_module=use_edge_module,
+                                   use_attention_module=use_attention_module,
+                                   use_ck=use_ck,
+                                   use_hk=use_hk,
+                                   use_vk=use_vk,
+                                   init_weights=init_weights)
 
     def forward(self, input):
         """
