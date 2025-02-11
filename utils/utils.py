@@ -160,7 +160,7 @@ def load_checkpoint(model, optimizer, scheduler, weights, device):
     
     Returns:
         dict: A dictionary containing epoch, best_psnr, best_ssim, best_loss, 
-              best_psnr_epoch, best_ssim_epoch, best_loss_epoch.
+              best_psnr_epoch, best_ssim_epoch, best_loss_epoch, best_metrics.
     """
     if not os.path.exists(weights):
         raise FileNotFoundError(f"Checkpoint file {weights} not found.")
@@ -198,5 +198,13 @@ def load_checkpoint(model, optimizer, scheduler, weights, device):
         'best_loss': best_loss,
         'best_psnr_epoch': best_psnr_epoch,
         'best_ssim_epoch': best_ssim_epoch,
-        'best_loss_epoch': best_loss_epoch
+        'best_loss_epoch': best_loss_epoch,
+        'best_metrics': {
+            'best_psnr': best_psnr,
+            'best_ssim': best_ssim,
+            'best_loss': best_loss,
+            'best_psnr_epoch': best_psnr_epoch,
+            'best_ssim_epoch': best_ssim_epoch,
+            'best_loss_epoch': best_loss_epoch,
+        }
     }

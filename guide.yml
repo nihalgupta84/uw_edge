@@ -3,12 +3,12 @@
 VERBOSE: True
 
 MODEL:
-  SESSION: 'uieb'
+  SESSION: 'combined'
   INPUT: 'raw'
   TARGET: 'ref'
   INPUT_CHANNELS: 3
   NAME: 'model'  
-  DATASET_NAME: 'UIEB'  # NEW: Specify the dataset name
+  DATASET_NAME: 'combined'  # NEW: Specify the dataset name
 # Optimization arguments.
 OPTIM:
   BATCH_SIZE: 24
@@ -24,8 +24,8 @@ TRAINING:
   WEIGHT: ''
   PS_W: 256
   PS_H: 256
-  TRAIN_DIR: './image_dirs/UIEB/train' # path to training data
-  VAL_DIR: './image_dirs/UIEB/val'     # path to validation data
+  TRAIN_DIR: './image_dirs/train' # path to training data
+  VAL_DIR: './image_dirs/testset_ref/test-UIEB'     # path to validation data
   SAVE_DIR: './checkpoints'  # Ensure this path is valid and not empty
   ORI: False
   LOG_FILE: 'log.txt'  # Ensure this path is not empty

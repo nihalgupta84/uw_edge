@@ -3,12 +3,12 @@
 VERBOSE: True
 
 MODEL:
-  SESSION: 'uieb'
+  SESSION: 'evup'
   INPUT: 'raw'
   TARGET: 'ref'
   INPUT_CHANNELS: 3
   NAME: 'model'  
-  DATASET_NAME: 'UIEB'  # NEW: Specify the dataset name
+  DATASET_NAME: 'EVUP'  # NEW: Specify the dataset name
 # Optimization arguments.
 OPTIM:
   BATCH_SIZE: 24
@@ -24,8 +24,8 @@ TRAINING:
   WEIGHT: ''
   PS_W: 256
   PS_H: 256
-  TRAIN_DIR: './image_dirs/UIEB/train' # path to training data
-  VAL_DIR: './image_dirs/UIEB/val'     # path to validation data
+  TRAIN_DIR: './image_dirs/EVUP/train' # path to training data
+  VAL_DIR: './image_dirs/EVUP/val'     # path to validation data
   SAVE_DIR: './checkpoints'  # Ensure this path is valid and not empty
   ORI: False
   LOG_FILE: 'log.txt'  # Ensure this path is not empty
@@ -38,7 +38,7 @@ TESTING:
   VAL_DIR: ''     # path to testing data
   WEIGHT: ''
   SAVE_IMAGES: True
-  RESULT_DIR: 'results'
+  RESULT_DIR: ''
   LOG_FILE: 't01.txt'
 
 LOG:
@@ -53,5 +53,5 @@ LOSSES:
   LPIPS_SCALE: 0.7
   USE_EDGE: True
   EDGE_SCALE: 0.01
-  USE_FREQ: True
+  USE_FREQ: False
   FREQ_SCALE: 0.05

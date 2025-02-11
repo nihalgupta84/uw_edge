@@ -386,6 +386,9 @@ def train():
             best_psnr_epoch = loaded_data["best_psnr_epoch"]
             best_ssim_epoch = loaded_data["best_ssim_epoch"]
             best_loss_epoch = loaded_data["best_loss_epoch"]
+            best_metrics = loaded_data.get("best_metrics", {})
+            best_psnr = best_metrics.get("best_psnr", best_psnr)
+            best_ssim = best_metrics.get("best_ssim", best_ssim)
             print(f"Checkpoint loaded. Starting from epoch {start_epoch}")
         else:
             print("No checkpoint found. Starting fresh.")
