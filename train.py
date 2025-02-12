@@ -266,7 +266,7 @@ def train():
 
     # 3) Create model using the configuration (MODEL.NAME)
     try:
-        model = create_model(opt.MODEL.NAME)
+        model = create_model(opt)
     except ValueError as e:
         print(f"Error creating model: {e}")
         sys.exit(1)
@@ -364,7 +364,10 @@ def train():
     if accelerator.is_local_main_process and opt.TRAINING.RESUME:
         ckp_dir = opt.TRAINING.SAVE_DIR
         ckpts = [f for f in os.listdir(ckp_dir) if f.endswith('.pth')]
-        if ckpts:
+        
+        # Restrict to those that start with last_checkpoint_epoch_
+        last_ckpts = [f for f in ckpts if f.startswith('last_checkpoint_epoch_')]
+        if last_ckpts:
             def parse_epoch(fn):
                 tokens = fn.split("epoch_")
                 if len(tokens) < 2:
@@ -374,7 +377,7 @@ def train():
                 except:
                     return -1
 
-            latest_ckpt = max(ckpts, key=lambda x: parse_epoch(x))
+            latest_ckpt = max(last_ckpts, key=lambda x: parse_epoch(x))
             ckpt_path = os.path.join(ckp_dir, latest_ckpt)
             print(f"Resuming from {ckpt_path}")
             loaded_data = load_checkpoint(model, optimizer, scheduler, ckpt_path, device)
@@ -391,7 +394,7 @@ def train():
             best_ssim = best_metrics.get("best_ssim", best_ssim)
             print(f"Checkpoint loaded. Starting from epoch {start_epoch}")
         else:
-            print("No checkpoint found. Starting fresh.")
+            print("No 'last_checkpoint_epoch_' file found. Starting fresh.")
 
     # 8) Prepare with Accelerator.
     model, optimizer, scheduler, train_loader, val_loader = accelerator.prepare(
