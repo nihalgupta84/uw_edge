@@ -32,13 +32,6 @@ class Config(object):
         self._C.MODEL.INPUT = 'raw'
         self._C.MODEL.TARGET = 'ref'
         self._C.MODEL.INPUT_CHANNELS = 3
-        self._C.MODEL.BASE_CHANNELS = 64
-        self._C.MODEL.EDGE_MODULE = True
-        self._C.MODEL.ATTENTION_MODULE = True
-        self._C.MODEL.EDGE_VK = True
-        self._C.MODEL.EDGE_HK = True
-        self._C.MODEL.EDGE_CK = True
-        self._C.MODEL.INIT_WEIGHTS = True
         # NEW: Specify default model type
         self._C.MODEL.NAME = 'version3'
         self._C.MODEL.DATASET_NAME = 'UIEB'
