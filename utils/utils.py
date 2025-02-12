@@ -66,6 +66,8 @@ def save_checkpoints(model, optimizer, scheduler, epoch, metrics, opt):
     checkpoint_dir = opt.TRAINING.SAVE_DIR
     os.makedirs(checkpoint_dir, exist_ok=True)
 
+    #get current wandb ru id if available
+    wandb_run_id = wandb.run.id if wandb.run else None
     # Helper function to remove old checkpoints of a specific type
     def cleanup_old_checkpoints(prefix):
         old_ckpts = [f for f in os.listdir(checkpoint_dir) 
@@ -82,7 +84,7 @@ def save_checkpoints(model, optimizer, scheduler, epoch, metrics, opt):
         'best_psnr': metrics['best_psnr'],
         'best_ssim': metrics['best_ssim'],
         'best_loss': metrics['best_loss'],
-        'wandb_run_id': wandb.run.id,  # Save the current wandb run ID.
+        'wandb_run_id': wandb_run_id,  # Save the current wandb run ID.
         'best_psnr_epoch': metrics['best_psnr_epoch'],
         'best_ssim_epoch': metrics['best_ssim_epoch'],
         'best_loss_epoch': metrics['best_loss_epoch'],
