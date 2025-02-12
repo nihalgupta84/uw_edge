@@ -1,9 +1,0 @@
-Model Summary:
-Model Summary:
-Model Summary:
-Model Summary:
-Model Summary:
-Model Summary:
-Model Summary:
-"Epoch 1 || PSNR: 5.6695 (best 5.6695 @ 1) | SSIM: 0.0380 (best 0.0380 @ 1) | Loss: 818.5261 (best 818.5261 @ 1) | UCIQE: 0.6116 | UIQM: inf"
-"Epoch 2 || PSNR: 6.2716 (best 6.2716 @ 2) | SSIM: 0.0615 (best 0.0615 @ 2) | Loss: 749.2357 (best 749.2357 @ 2) | UCIQE: 0.6193 | UIQM: inf"

@@ -1,6 +1,0 @@
-"Test Result on EVUP_unpaired, check point /media/anil/hdd2/nihal/vidhi/uw_edge/checkpoints/uieb with_edge_model_SSIM_0.8_edge_0.01/uieb with_edge_model_SSIM_0.8_edge_0.01_epoch_164.pth, testing data /media/anil/hdd2/nihal/vidhi/uw_edge/image_dirs/testset_non_ref/test-EUVP-unpaired"
-"PSNR: 18.07189326286316, SSIM: 0.8122117063403129, LPIPS: 0.23996160371229053, UCIQUE: 0.40084728598594666, UIQM: 3.6404411792755127"
-"Test Result on EVUP_unpaired, check point /media/anil/hdd2/nihal/vidhi/uw_edge/checkpoints/uieb with_edge_model_SSIM_0.8_edge_0.01/uieb with_edge_model_SSIM_0.8_edge_0.01_epoch_164.pth, testing data /media/anil/hdd2/nihal/vidhi/uw_edge/image_dirs/testset_ref/test-EUVP"
-"PSNR: 19.27949246406555, SSIM: 0.796124496459961, LPIPS: 0.2835958995297551, UCIQUE: 0.4425980746746063, UIQM: 3.640373468399048"
-"Test Result on EVUP_unpaired, check point /media/anil/hdd2/nihal/vidhi/uw_edge/checkpoints/uieb with_edge_model_SSIM_0.8_edge_0.01/uieb with_edge_model_SSIM_0.8_edge_0.01_epoch_164.pth, testing data /media/anil/hdd2/nihal/vidhi/uw_edge/image_dirs/testset_ref/test-UIEB"
-"PSNR: 24.918090120951334, SSIM: 0.9355611092514462, LPIPS: 0.07278000308821599, UCIQUE: 0.43206503987312317, UIQM: 3.7438888549804688"
