@@ -1,6 +1,10 @@
 /log
 /logs
 /results
+<<<<<<< HEAD
+/result
+=======
+>>>>>>> ac977afc24c7a1ff29070c8d77a4c4fb6d622c25
 /archive
 /checkpoints
 /image_dirs

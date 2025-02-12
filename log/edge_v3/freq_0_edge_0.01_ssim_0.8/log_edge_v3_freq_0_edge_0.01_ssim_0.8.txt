@@ -1,0 +1,149 @@
+Model Detailed Summary:
+--------------------------------------------------
+=========================================================================================================
+Layer (type:depth-idx)                                  Output Shape              Param #
+=========================================================================================================
+EdgeModel_V3                                            [1, 3, 256, 256]          --
+├─ColorBalancePrior: 1-1                                [1, 3, 256, 256]          --
+│    └─NAFBlock: 2-1                                    [1, 3, 256, 256]          6
+│    │    └─LayerNorm2d: 3-1                            [1, 3, 256, 256]          6
+│    │    └─Conv2d: 3-2                                 [1, 6, 256, 256]          24
+│    │    └─Conv2d: 3-3                                 [1, 6, 256, 256]          60
+│    │    └─SimpleGate: 3-4                             [1, 3, 256, 256]          --
+│    │    └─Sequential: 3-5                             [1, 3, 1, 1]              12
+│    │    └─Conv2d: 3-6                                 [1, 3, 256, 256]          12
+│    │    └─Identity: 3-7                               [1, 3, 256, 256]          --
+│    │    └─LayerNorm2d: 3-8                            [1, 3, 256, 256]          6
+│    │    └─Conv2d: 3-9                                 [1, 6, 256, 256]          24
+│    │    └─SimpleGate: 3-10                            [1, 3, 256, 256]          --
+│    │    └─Conv2d: 3-11                                [1, 3, 256, 256]          12
+│    │    └─Identity: 3-12                              [1, 3, 256, 256]          --
+├─ReflectionFeatureContextualizer: 1-2                  [1, 6, 256, 256]          --
+│    └─ReflectionPatchEmbed: 2-2                        [1, 48, 256, 256]         --
+│    │    └─ReflectionPad2d: 3-13                       [1, 3, 258, 258]          --
+│    │    └─Conv2d: 3-14                                [1, 48, 256, 256]         1,296
+│    └─ReflectionPatchEmbed: 2-3                        [1, 48, 256, 256]         --
+│    │    └─ReflectionPad2d: 3-15                       [1, 3, 258, 258]          --
+│    │    └─Conv2d: 3-16                                [1, 48, 256, 256]         1,296
+│    └─MAQ: 2-4                                         [1, 48, 256, 256]         --
+│    │    └─CrossAttentionTransformer: 3-17             [1, 48, 256, 256]         43,068
+│    │    └─CrossAttentionTransformer: 3-18             [1, 48, 256, 256]         43,068
+│    │    └─SelfAttentionTransformer: 3-19              [1, 48, 256, 256]         32,171
+│    │    └─Sequential: 3-20                            [1, 192, 256, 256]        103,872
+│    │    └─Sequential: 3-21                            [1, 48, 256, 256]         9,360
+│    └─MAQ: 2-5                                         [1, 48, 256, 256]         --
+│    │    └─CrossAttentionTransformer: 3-22             [1, 48, 256, 256]         43,068
+│    │    └─CrossAttentionTransformer: 3-23             [1, 48, 256, 256]         43,068
+│    │    └─SelfAttentionTransformer: 3-24              [1, 48, 256, 256]         32,171
+│    │    └─Sequential: 3-25                            [1, 192, 256, 256]        103,872
+│    │    └─Sequential: 3-26                            [1, 48, 256, 256]         9,360
+│    └─Aggreation: 2-6                                  [1, 48, 256, 256]         --
+│    │    └─SelfAttention: 3-27                         [1, 96, 256, 256]         2,412
+│    │    └─ConvLayer: 3-28                             [1, 48, 256, 256]         41,521
+│    └─MAQ: 2-7                                         [1, 48, 256, 256]         --
+│    │    └─CrossAttentionTransformer: 3-29             [1, 48, 256, 256]         43,068
+│    │    └─CrossAttentionTransformer: 3-30             [1, 48, 256, 256]         43,068
+│    │    └─SelfAttentionTransformer: 3-31              [1, 48, 256, 256]         32,171
+│    │    └─Sequential: 3-32                            [1, 192, 256, 256]        103,872
+│    │    └─Sequential: 3-33                            [1, 48, 256, 256]         9,360
+│    └─MAQ: 2-8                                         [1, 48, 256, 256]         --
+│    │    └─CrossAttentionTransformer: 3-34             [1, 48, 256, 256]         43,068
+│    │    └─CrossAttentionTransformer: 3-35             [1, 48, 256, 256]         43,068
+│    │    └─SelfAttentionTransformer: 3-36              [1, 48, 256, 256]         32,171
+│    │    └─Sequential: 3-37                            [1, 192, 256, 256]        103,872
+│    │    └─Sequential: 3-38                            [1, 48, 256, 256]         9,360
+│    └─Aggreation: 2-9                                  [1, 48, 256, 256]         --
+│    │    └─SelfAttention: 3-39                         [1, 144, 256, 256]        5,346
+│    │    └─ConvLayer: 3-40                             [1, 48, 256, 256]         62,257
+│    └─SPP: 2-10                                        [1, 6, 256, 256]          --
+│    │    └─ModuleList: 3-41                            --                        9,412
+│    │    └─ConvLayer: 3-42                             [1, 6, 256, 256]          12,967
+├─ReflectionDetailRestorer: 1-3                         [1, 3, 256, 256]          --
+│    └─ReflectionPatchEmbed: 2-11                       [1, 16, 256, 256]         --
+│    │    └─ReflectionPad2d: 3-43                       [1, 3, 258, 258]          --
+│    │    └─Conv2d: 3-44                                [1, 16, 256, 256]         432
+│    └─QBlock: 2-12                                     [1, 16, 256, 256]         --
+│    │    └─RCB: 3-45                                   [1, 16, 256, 256]         5,136
+│    │    └─NAFBlock: 3-46                              [1, 16, 256, 256]         2,320
+│    │    └─Sequential: 3-47                            [1, 64, 256, 256]         11,584
+│    │    └─Sequential: 3-48                            [1, 16, 256, 256]         1,072
+│    └─QBlock: 2-13                                     [1, 16, 256, 256]         --
+│    │    └─RCB: 3-49                                   [1, 16, 256, 256]         5,136
+│    │    └─NAFBlock: 3-50                              [1, 16, 256, 256]         2,320
+│    │    └─Sequential: 3-51                            [1, 64, 256, 256]         11,584
+│    │    └─Sequential: 3-52                            [1, 16, 256, 256]         1,072
+│    └─Aggreation: 2-14                                 [1, 16, 256, 256]         --
+│    │    └─SelfAttention: 3-53                         [1, 32, 256, 256]         292
+│    │    └─ConvLayer: 3-54                             [1, 16, 256, 256]         4,625
+│    └─QBlock: 2-15                                     [1, 16, 256, 256]         --
+│    │    └─RCB: 3-55                                   [1, 16, 256, 256]         5,136
+│    │    └─NAFBlock: 3-56                              [1, 16, 256, 256]         2,320
+│    │    └─Sequential: 3-57                            [1, 64, 256, 256]         11,584
+│    │    └─Sequential: 3-58                            [1, 16, 256, 256]         1,072
+│    └─QBlock: 2-16                                     [1, 16, 256, 256]         --
+│    │    └─RCB: 3-59                                   [1, 16, 256, 256]         5,136
+│    │    └─NAFBlock: 3-60                              [1, 16, 256, 256]         2,320
+│    │    └─Sequential: 3-61                            [1, 64, 256, 256]         11,584
+│    │    └─Sequential: 3-62                            [1, 16, 256, 256]         1,072
+│    └─Aggreation: 2-17                                 [1, 16, 256, 256]         --
+│    │    └─SelfAttention: 3-63                         [1, 48, 256, 256]         630
+│    │    └─ConvLayer: 3-64                             [1, 16, 256, 256]         6,929
+│    └─QBlock: 2-18                                     [1, 16, 256, 256]         --
+│    │    └─RCB: 3-65                                   [1, 16, 256, 256]         5,136
+│    │    └─NAFBlock: 3-66                              [1, 16, 256, 256]         2,320
+│    │    └─Sequential: 3-67                            [1, 64, 256, 256]         11,584
+│    │    └─Sequential: 3-68                            [1, 16, 256, 256]         1,072
+│    └─QBlock: 2-19                                     [1, 16, 256, 256]         --
+│    │    └─RCB: 3-69                                   [1, 16, 256, 256]         5,136
+│    │    └─NAFBlock: 3-70                              [1, 16, 256, 256]         2,320
+│    │    └─Sequential: 3-71                            [1, 64, 256, 256]         11,584
+│    │    └─Sequential: 3-72                            [1, 16, 256, 256]         1,072
+│    └─Aggreation: 2-20                                 [1, 16, 256, 256]         --
+│    │    └─SelfAttention: 3-73                         [1, 64, 256, 256]         1,096
+│    │    └─ConvLayer: 3-74                             [1, 16, 256, 256]         9,233
+│    └─SPP: 2-21                                        [1, 3, 256, 256]          --
+│    │    └─ModuleList: 3-75                            --                        1,092
+│    │    └─ConvLayer: 3-76                             [1, 3, 256, 256]          2,164
+├─Sequential: 1-4                                       [1, 3, 256, 256]          --
+│    └─Conv2d: 2-22                                     [1, 3, 256, 256]          246
+│    └─Sigmoid: 2-23                                    [1, 3, 256, 256]          --
+=========================================================================================================
+Total params: 1,224,060
+Trainable params: 1,127,292
+Non-trainable params: 96,768
+Total mult-adds (G): 45.77
+=========================================================================================================
+Input size (MB): 0.79
+Forward/backward pass size (MB): 9380.37
+Params size (MB): 4.84
+Estimated Total Size (MB): 9386.00
+=========================================================================================================
+
+Total Parameters: 1,210,236
+Trainable Parameters: 1,113,468
+
+Training Configuration:
+--------------------------------------------------
+WANDB: {'NAME': 'evup_01'}
+GPU: [0]
+VERBOSE: True
+MODEL: {'SESSION': 'freq_0_edge_0.01_ssim_0.8', 'INPUT': 'raw', 'TARGET': 'ref', 'INPUT_CHANNELS': 3, 'NAME': 'edge_v3', 'DATASET_NAME': 'uieb'}
+OPTIM: {'BATCH_SIZE': 4, 'SEED': 3407, 'NUM_EPOCHS': 300, 'NEPOCH_DECAY': [100], 'LR_INITIAL': 0.0002, 'LR_MIN': 1e-06, 'BETA1': 0.5, 'WANDB': True}
+TRAINING: {'VAL_AFTER_EVERY': 1, 'RESUME': False, 'WEIGHT': '', 'TRAIN_DIR': './image_dirs/UIEB/train', 'VAL_DIR': './image_dirs/UIEB/val', 'SAVE_DIR': './checkpoints/edge_v3/uieb/freq_0_edge_0.01_ssim_0.8', 'PS_W': 256, 'PS_H': 256, 'ORI': False, 'LOG_FILE': 'log_edge_v3_freq_0_edge_0.01_ssim_0.8.txt', 'CLIP_GRAD': 0.0, 'MIXED_PRECISION': 'fp16'}
+TESTING: {'INPUT': 'raw', 'TARGET': 'ref', 'VAL_DIR': '', 'WEIGHT': '', 'SAVE_IMAGES': True, 'RESULT_DIR': '', 'LOG_FILE': 't01.txt'}
+LOG: {'LOG_DIR': './log/edge_v3/freq_0_edge_0.01_ssim_0.8'}
+LOSSES: {'USE_PSNR': True, 'PSNR_SCALE': 1.0, 'USE_SSIM': True, 'SSIM_SCALE': 0.8, 'USE_LPIPS': True, 'LPIPS_SCALE': 0.7, 'USE_EDGE': True, 'EDGE_SCALE': 0.01, 'USE_FREQ': False, 'FREQ_SCALE': 0.05}
+"Epoch 1 || PSNR: 10.8529 (best 10.8529 @ 1) | SSIM: 0.3657 (best 0.3657 @ 1) | Loss: 47.1863 (best 47.1863 @ 1) | UCIQE: 0.4416 | UIQM: 3.7459"
+"Epoch 2 || PSNR: 11.5075 (best 11.5075 @ 2) | SSIM: 0.3607 (best 0.3657 @ 1) | Loss: 41.8642 (best 41.8642 @ 2) | UCIQE: 0.4241 | UIQM: 3.7748"
+"Epoch 3 || PSNR: 11.5312 (best 11.5312 @ 3) | SSIM: 0.3521 (best 0.3657 @ 1) | Loss: 39.1542 (best 39.1542 @ 3) | UCIQE: 0.4652 | UIQM: 3.8102"
+"Epoch 4 || PSNR: 11.3713 (best 11.5312 @ 3) | SSIM: 0.3590 (best 0.3657 @ 1) | Loss: 42.3852 (best 39.1542 @ 3) | UCIQE: 0.4408 | UIQM: 3.8030"
+"Epoch 5 || PSNR: 11.6149 (best 11.6149 @ 5) | SSIM: 0.3621 (best 0.3657 @ 1) | Loss: 38.7929 (best 38.7929 @ 5) | UCIQE: 0.4465 | UIQM: 3.7834"
+"Epoch 6 || PSNR: 11.2375 (best 11.6149 @ 5) | SSIM: 0.3533 (best 0.3657 @ 1) | Loss: 35.4398 (best 35.4398 @ 6) | UCIQE: 0.4677 | UIQM: 3.8642"
+"Epoch 7 || PSNR: 11.6732 (best 11.6732 @ 7) | SSIM: 0.3541 (best 0.3657 @ 1) | Loss: 34.5898 (best 34.5898 @ 7) | UCIQE: 0.4381 | UIQM: 3.8608"
+"Epoch 8 || PSNR: 11.3197 (best 11.6732 @ 7) | SSIM: 0.3648 (best 0.3657 @ 1) | Loss: 32.5158 (best 32.5158 @ 8) | UCIQE: 0.4549 | UIQM: 3.8585"
+"Epoch 9 || PSNR: 11.5070 (best 11.6732 @ 7) | SSIM: 0.3577 (best 0.3657 @ 1) | Loss: 39.9291 (best 32.5158 @ 8) | UCIQE: 0.4352 | UIQM: 3.8373"
+"Epoch 10 || PSNR: 11.2239 (best 11.6732 @ 7) | SSIM: 0.3512 (best 0.3657 @ 1) | Loss: 33.4455 (best 32.5158 @ 8) | UCIQE: 0.4517 | UIQM: 3.9090"
+"Epoch 11 || PSNR: 11.5462 (best 11.6732 @ 7) | SSIM: 0.3616 (best 0.3657 @ 1) | Loss: 36.9919 (best 32.5158 @ 8) | UCIQE: 0.4431 | UIQM: 3.8502"
+"Epoch 12 || PSNR: 11.3214 (best 11.6732 @ 7) | SSIM: 0.3479 (best 0.3657 @ 1) | Loss: 39.5393 (best 32.5158 @ 8) | UCIQE: 0.4375 | UIQM: 3.8449"
+"Epoch 13 || PSNR: 11.2849 (best 11.6732 @ 7) | SSIM: 0.3534 (best 0.3657 @ 1) | Loss: 30.5868 (best 30.5868 @ 13) | UCIQE: 0.4529 | UIQM: 3.8947"
+"Epoch 14 || PSNR: 11.4781 (best 11.6732 @ 7) | SSIM: 0.3481 (best 0.3657 @ 1) | Loss: 33.0293 (best 30.5868 @ 13) | UCIQE: 0.4377 | UIQM: 3.8186"

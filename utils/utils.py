@@ -82,7 +82,10 @@ def save_checkpoints(model, optimizer, scheduler, epoch, metrics, opt):
         'best_psnr': metrics['best_psnr'],
         'best_ssim': metrics['best_ssim'],
         'best_loss': metrics['best_loss'],
-        'wandb_run_id': wandb.run.id  # Save the current wandb run ID.
+        'wandb_run_id': wandb.run.id,  # Save the current wandb run ID.
+        'best_psnr_epoch': metrics['best_psnr_epoch'],
+        'best_ssim_epoch': metrics['best_ssim_epoch'],
+        'best_loss_epoch': metrics['best_loss_epoch'],
     }
     cleanup_old_checkpoints('last_checkpoint')
     save_checkpoint(last_checkpoint, epoch, 'last_checkpoint', checkpoint_dir)

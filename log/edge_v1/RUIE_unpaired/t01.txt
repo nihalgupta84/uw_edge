@@ -1,0 +1,2 @@
+"Test Result on RUIE_unpaired, check point /media/anil/hdd2/nihal/vidhi/uw_edge/checkpoints/uieb with_edge_model_SSIM_0.8_edge_0.01/uieb with_edge_model_SSIM_0.8_edge_0.01_epoch_164.pth, testing data /media/anil/hdd2/nihal/vidhi/uw_edge/image_dirs/testset_non_ref/test-RUIE-unpaired"
+"PSNR: 14.950458040237427, SSIM: 0.773127649128437, LPIPS: 0.40707317970693113, UCIQUE: 0.36893385648727417, UIQM: 3.6322219371795654"
