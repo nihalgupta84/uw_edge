@@ -278,6 +278,18 @@ def train():
     # Initialize run_id before wandb.init
     run_id = None
     
+    # If resuming, try to get the wandb run ID from the checkpoint
+    if opt.TRAINING.RESUME:
+        ckp_dir = opt.TRAINING.SAVE_DIR
+        last_ckpts = [f for f in os.listdir(ckp_dir) if f.startswith('last_checkpoint_epoch_') and f.endswith('.pth')]
+        if last_ckpts:
+            latest_ckpt = max(last_ckpts, key=lambda x: int(x.split('epoch_')[1].split('.')[0]))
+            ckpt_path = os.path.join(ckp_dir, latest_ckpt)
+            checkpoint = torch.load(ckpt_path, map_location='cpu')
+            run_id = checkpoint.get('wandb_run_id')
+            if run_id:
+                print(f"Resuming wandb run: {run_id}")
+    
     if accelerator.is_local_main_process:
         try:
             # Create a combined name using dataset and session
@@ -288,9 +300,9 @@ def train():
                 wandb.init(
                     project=f'{opt.MODEL.NAME}_underwater',
                     config=cfg_to_dict(opt),
-                    name=run_name,  # Use the combined name here
-                    id = run_id,
-                    resume='must' if run_id is not None else 'allow'
+                    name=run_name,
+                    id=run_id,  # Use the loaded run_id
+                    resume="allow"  # Changed from 'must' to 'allow'
                 )
             else:
                 print("No internet, using wandb offline mode.")
@@ -307,7 +319,10 @@ def train():
         # NOTE: Do not update SAVE_DIR here because finalize_config() already appended WANDB.NAME.
 
         # Log additional information into WandB.
-        wandb.config.update({"command_line": " ".join(sys.argv)})
+        wandb.config.update(
+            {"command_line": " ".join(sys.argv)}, 
+            allow_val_change=True  # Add this flag to allow config value changes
+        )
 
         # Log the detailed model summary using an input size from config.
         input_size = (1, opt.MODEL.INPUT_CHANNELS, opt.TRAINING.PS_H, opt.TRAINING.PS_W)
