@@ -266,7 +266,7 @@ def train():
 
     # 3) Create model using the configuration (MODEL.NAME)
     try:
-        model = create_model(opt)
+        model = create_model(opt.MODEL.NAME)
     except ValueError as e:
         print(f"Error creating model: {e}")
         sys.exit(1)

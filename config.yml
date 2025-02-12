@@ -42,7 +42,7 @@ TESTING:
   LOG_FILE: 't01.txt' # Ensure this path is valid and not empty
   LOG_DIR: './log/test_results'
 LOG:
-  LOG_DIR: './log/test_results'  # Ensure this path is valid and not empty
+  LOG_DIR: './log'  # Ensure this path is valid and not empty
 
 LOSSES:
   USE_PSNR: True

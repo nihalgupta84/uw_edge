@@ -75,6 +75,7 @@ class Config(object):
         self._C.TESTING.SAVE_IMAGES = True
         self._C.TESTING.RESULT_DIR = 'result'
         self._C.TESTING.LOG_FILE = 'log.txt'
+        self._C.TESTING.LOG_DIR = './log/test_results'
 
         self._C.LOG = CN()
         self._C.LOG.LOG_DIR = 'output_dir'
