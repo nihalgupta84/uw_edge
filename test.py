@@ -38,6 +38,7 @@ def test():
 
     # Data Loader
     val_dir = opt.TESTING.VAL_DIR
+
     if not val_dir:
         print("No validation directory specified. Skipping dataset loading.")
         val_dataset = []
@@ -61,6 +62,7 @@ def test():
     model.eval()
 
     size = len(testloader)
+
     stat_psnr = 0
     stat_ssim = 0
     stat_lpips = 0

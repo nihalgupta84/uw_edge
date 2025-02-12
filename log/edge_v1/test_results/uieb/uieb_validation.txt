@@ -1,0 +1,2 @@
+"Test Result on uieb, check point /media/anil/hdd2/nihal/vidhi/uw_edge/checkpoints/edge_v1/combined/edge_0.01_ssim_0.3/best_loss_model_epoch_133.pth, testing data /media/anil/hdd2/nihal/vidhi/uw_edge/image_dirs/UIEB/val"
+"PSNR: 11.834788429603147, SSIM: 0.49153725417812216, LPIPS: 0.7192630232050178, UCIQUE: 0.4151204526424408, UIQM: 3.913128614425659"
