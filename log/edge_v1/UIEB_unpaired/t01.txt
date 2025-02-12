@@ -1,2 +1,0 @@
-"Test Result on UIEB_unpaired, check point /media/anil/hdd2/nihal/vidhi/uw_edge/checkpoints/uieb with_edge_model_SSIM_0.8_edge_0.01/uieb with_edge_model_SSIM_0.8_edge_0.01_epoch_164.pth, testing data /media/anil/hdd2/nihal/vidhi/uw_edge/image_dirs/testset_ref/test-UIEB"
-"PSNR: 24.918090120951334, SSIM: 0.9355611092514462, LPIPS: 0.07278000308821599, UCIQUE: 0.43206503987312317, UIQM: 3.7438888549804688"

@@ -32,7 +32,7 @@ def create_model(opt):
         )
 
     elif model_name == "edge_v2":
-        # You can pass any relevant config flags similarly
+
         return EdgeModel_V2()
 
     elif model_name == "edge_v3":
