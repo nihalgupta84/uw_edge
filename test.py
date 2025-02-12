@@ -99,7 +99,7 @@ def test():
                  format(stat_psnr, stat_ssim, stat_lpips, stat_uciqe, stat_uiqm))
     print(test_info)
     print(log_stats)
-    os.makedirs(opt.LOG.LOG_DIR, exist_ok=True)
+    os.makedirs(opt.TESTING.LOG_DIR, exist_ok=True)
     with open(os.path.join(opt.TESTING.LOG_DIR, opt.TESTING.LOG_FILE), mode='a', encoding='utf-8') as f:
         f.write(json.dumps(test_info) + '\n')
         f.write(json.dumps(log_stats) + '\n')
