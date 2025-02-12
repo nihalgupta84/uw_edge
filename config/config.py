@@ -75,6 +75,7 @@ class Config(object):
         self._C.TESTING.SAVE_IMAGES = True
         self._C.TESTING.RESULT_DIR = 'result'
         self._C.TESTING.LOG_FILE = 'log.txt'
+        self._C.TESTING.LOG_DIR = './log/test_results'
 
         self._C.LOG = CN()
         self._C.LOG.LOG_DIR = 'output_dir'
@@ -125,3 +126,8 @@ class Config(object):
                 self._C.MODEL.DATASET_NAME,
                 self._C.MODEL.SESSION
             )
+            self._C.TESTING.RESULT_DIR = os.path.join(
+                self._C.TESTING.RESULT_DIR, self._C.MODEL.NAME, self._C.MODEL.DATASET_NAME, self._C.MODEL.SESSION)
+            self._C.TESTING.LOG_DIR = os.path.join(
+                self._C.TESTING.LOG_DIR, self._C.MODEL.NAME, self._C.MODEL.DATASET_NAME, self._C.MODEL.SESSION)
+            self._C.TESTING.LOG_FILE = f"test_{self._C.MODEL.DATASET_NAME}_{self._C.MODEL.SESSION}_{self._C.MODEL.NAME}.txt"

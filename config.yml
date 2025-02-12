@@ -46,6 +46,7 @@ TESTING:
   SAVE_IMAGES: True
   RESULT_DIR: 'results'
   LOG_FILE: 't01.txt'
+  LOG_DIR: './log/test_results'
 
 LOG:
   LOG_DIR: './log'  # Ensure this path is valid and not empty
