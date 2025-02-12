@@ -127,6 +127,6 @@ class Config(object):
             )
             self._C.TESTING.RESULT_DIR = os.path.join(
                 self._C.TESTING.RESULT_DIR, self._C.MODEL.NAME, self._C.MODEL.DATASET_NAME, self._C.MODEL.SESSION)
-            self.C.TESTING.LOG_DIR = os.path.join(
+            self._C.TESTING.LOG_DIR = os.path.join(
                 self._C.TESTING.LOG_DIR, self._C.MODEL.NAME, self._C.MODEL.DATASET_NAME, self._C.MODEL.SESSION)
             self._C.TESTING.LOG_FILE = f"test_{self._C.MODEL.DATASET_NAME}_{self._C.MODEL.SESSION}_{self._C.MODEL.NAME}.txt"
