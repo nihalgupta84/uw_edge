@@ -87,9 +87,13 @@ python train.py --config_yaml=config.yml MODEL.NAME edge_v1 OPTIM.BATCH_SIZE 8
 ## **🧪 Testing**
 ### **📷 Run Testing with Reference Images**
 ```bash
-python test.py --config_yaml=config.yml TRAINING.TARGET ''
+python test.py --config_yaml config.yml MODEL.NAME edge_v1 MODEL.DATASET_NAME "paired or unpai MODEL.SESSION trained_on_uieb TESTING.WEIGHT "checkpoint path" TESTING.VAL_DIR "testing data path"
 ```
+### **📷 Run Testing with No Reference Images**
 
+```bash
+python test.py --config_yaml config.yml MODEL.NAME edge_v1 MODEL.DATASET_NAME "paired or unpai MODEL.SESSION trained_on_uieb TESTING.WEIGHT "checkpoint path" TESTING.VAL_DIR "testing data path"  TESTING.INPUT "" TESTING.TARGET ""
+```
 ---
 
 ## **⚙️ Configuration**
