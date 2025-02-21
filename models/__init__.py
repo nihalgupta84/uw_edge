@@ -28,7 +28,9 @@ def create_model(opt):
             use_ck               = opt.MODEL.EDGE_CK,
             use_hk               = opt.MODEL.EDGE_HK,
             use_vk               = opt.MODEL.EDGE_VK,
-            init_weights         = opt.MODEL.INIT_WEIGHTS
+            init_weights         = opt.MODEL.INIT_WEIGHTS,
+            use_cgafusion        = opt.MODEL.CGF,
+            use_attention_dec    = opt.MODEL.DEATTENTION,
         )
 
     elif model_name == "edge_v2":

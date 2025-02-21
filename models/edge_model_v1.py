@@ -1,26 +1,131 @@
-# File: models/CCLNet/ScaterringBranch/uw_edge_model.py
+# File: models/edge_model_v1.py
+
+
+"""
+edge_model_v1.py
+
+This file implements a configurable underwater enhancement or haze removal model.
+It is built around the `SCBackbone` architecture, which includes:
+
+1) Multiple Encoder Blocks with optional:
+   - Edge Detection (SCEdgeDetectionModule)
+   - Self-Attention (SCAttention)
+
+2) A Bottleneck combining the highest-level features.
+
+3) Multiple Decoder Blocks that:
+   - Optionally fuse high-level + skip features using CGAFusion
+     or a simpler concatenation-based fusion
+   - Optionally include a Self-Attention step
+
+Finally, a 1×1 or 3×3 'final' convolution produces the restored image.
+
+------------------------------------------
+I. SCEdgeDetectionModule
+   - Takes an input of shape [B, C, H, W]
+   - If use_ck, use_hk, use_vk are True, it applies 3 depthwise kernels
+     for center difference + sobel horizontal + sobel vertical.
+     Otherwise, it returns a zero map for each disabled branch.
+   - Concatenates the 3 outputs => [B, 3C, H, W], then applies a 1×1 conv
+     down to [B, C, H, W].
+   - Goal: capture edge/gradient details in a channel-wise manner.
+
+------------------------------------------
+II. SCAttention
+   - Channel Attention
+       * A global average pool => [B, C, 1, 1], followed by MLP => scale factor
+         that is broadcast across spatial dims => [B, C, H, W].
+   - Spatial Attention
+       * Takes min/max across channels => [B,1,H,W], merges => [B,2,H,W],
+         then a 7×7 conv => [B,1,H,W] => merges into the original feature map.
+   - Edge Enhancement
+       * A depthwise 3×3 conv => [B, C, H, W].
+   - Fusion
+       * Concats channel_enhanced + spatial_enhanced => [B,2C,H,W]
+         => 1×1 conv => [B,C,H,W], then add edge_enhanced => final [B, C, H, W].
+
+------------------------------------------
+III. SCEncoderBlock
+   Input : [B, in_channels,  H, W]
+   Output: [B, out_channels, H, W]
+   Steps:
+   1) First conv => [B, out_channels, H, W]
+   2) Optional Edge detection => [B, out_channels, H, W]
+      Optional Attention => [B, out_channels, H, W]
+      Sum them with the 'out' => new_out
+   3) Dropout + second conv => [B, out_channels, H, W]
+   4) Residual skip if in_channels != out_channels => ensures shape matches
+      final => [B, out_channels, H, W]
+
+------------------------------------------
+IV. SCDecoderBlock
+   Input : x => [B, in_channels,   H_dec, W_dec]
+           skip => [B, skip_ch, H_dec, W_dec]
+   Output: [B, out_channels, 2×H_dec, 2×W_dec] (after upsample)
+   Actually, the upsample step is inside the block, so the shapes might shift:
+     - Step1: Upsample x => [B, in_channels, 2×H_dec, 2×W_dec]
+     - Step2: If use_cgafusion, align skip => [B, in_channels, 2×H_dec, 2×W_dec]
+              then CGAFusion => returns [B, in_channels, 2×H_dec, 2×W_dec]
+       Else, cat => [B, in_channels + skip_ch, 2×H_dec, 2×W_dec]
+     - Step3: 'refine' => [B, mid_channels, 2×H_dec, 2×W_dec]
+     - Step4: optional SCAttention => [B, mid_channels, 2×H_dec, 2×W_dec]
+     - Step5: final conv => [B, out_channels, 2×H_dec, 2×W_dec]
+
+------------------------------------------
+V. SCBackbone
+   - Overall U-Net style architecture (encoder → bottleneck → decoder).
+   - Encoders:
+     * encoder1 => [B, base_ch, H, W]
+       downsample => [B, base_ch, H/2, W/2]
+     * encoder2 => [B, 2*base_ch, H/2, W/2]
+       downsample => [B, 2*base_ch, H/4, W/4]
+     * encoder3 => [B, 4*base_ch, H/4, W/4]
+       downsample => [B, 4*base_ch, H/8, W/8]
+   - Bottleneck => [B, 8*base_ch, H/8, W/8]
+   - Decoders merge skip connections:
+     * decoder3 merges with s3 => output [B, 4*base_ch, H/4, W/4]
+     * decoder2 merges with s2 => output [B, 2*base_ch, H/2, W/2]
+     * decoder1 merges with s1 => output [B, base_ch,   H,   W]
+   - final => [B, in_ch, H, W]
+
+------------------------------------------
+VI. EdgeModel_V1
+   - A simple wrapper that instantiates `SCBackbone(...)` with
+     user-defined config flags for edge detection, attention, CGAFusion, etc.
+   - forward(x) returns only the final restored image => shape [B, in_ch, H, W]
+   - _get_featurehr(x) returns the last decoder feature => shape [B, base_ch, H, W]
+
+------------------------------------------
+Shape Summary:
+ - Input: [B, 3, H, W]
+ - Through each encoder: resolution halves, channel dimension typically doubles
+ - Bottleneck: [B, 8*base_ch, H/8, W/8]
+ - Decoders: resolution doubles each step, channels go from 8*base_ch → 4*base_ch → 2*base_ch → base_ch
+ - Final layer: [B, in_ch, H, W]
+
+"""
+
 
 import torch
 import warnings
 from thop import profile, clever_format
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.utils.checkpoint
 from torchinfo import summary
-
+from utils.fusion import CGAFusion
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
 
-########################################################################
+
+###############################################################################
 # 1. SCEdgeDetectionModule
-########################################################################
+###############################################################################
 class SCEdgeDetectionModule(nn.Module):
     """
-    Edge Detection Module with improved numerical stability and weight normalization.
+    Optional Edge Detection using custom kernels (Center Difference + Sobel variants).
     """
     def __init__(self, channels, use_ck=True, use_hk=True, use_vk=True):
         super(SCEdgeDetectionModule, self).__init__()
-
         self.use_ck = use_ck
         self.use_hk = use_hk
         self.use_vk = use_vk
@@ -43,25 +148,25 @@ class SCEdgeDetectionModule(nn.Module):
             nn.GELU()
         )
 
-        # Init custom kernels
+        # Initialize custom kernels
         self._init_edge_kernels()
 
     def _init_edge_kernels(self):
-        # Center Difference Kernel
+        # Center difference kernel
         cdc_kernel = torch.zeros(1, 1, 3, 3)
         cdc_kernel[0, 0, 1, 1] = 1
         cdc_kernel[0, 0, :, :] -= 1/8
         epsilon = 1e-5
         cdc_kernel = cdc_kernel / (cdc_kernel.abs().sum() + epsilon)
 
-        # Sobel-like horizontal
+        # Sobel horizontal
         hdc_kernel = torch.tensor([
             [-1,  0, 1],
             [-2,  0, 2],
             [-1,  0, 1]
         ]).float().view(1, 1, 3, 3) / 8.0
 
-        # Sobel-like vertical
+        # Sobel vertical
         vdc_kernel = torch.tensor([
             [-1, -2, -1],
             [ 0,  0,  0],
@@ -72,28 +177,27 @@ class SCEdgeDetectionModule(nn.Module):
         self.register_buffer('hdc_kernel', hdc_kernel)
         self.register_buffer('vdc_kernel', vdc_kernel)
 
-        # Initialize weights
+        # Assign weights
         self.cdc.weight.data = cdc_kernel.repeat(self.cdc.weight.shape[0], 1, 1, 1)
         self.hdc.weight.data = hdc_kernel.repeat(self.hdc.weight.shape[0], 1, 1, 1)
         self.vdc.weight.data = vdc_kernel.repeat(self.vdc.weight.shape[0], 1, 1, 1)
 
     def forward(self, x):
-        # Gradient checkpoint for memory saving
-        cdc_out = torch.utils.checkpoint.checkpoint(self.cdc, x) if self.use_ck else torch.zeros_like(x)
-        hdc_out = torch.utils.checkpoint.checkpoint(self.hdc, x) if self.use_hk else torch.zeros_like(x)
-        vdc_out = torch.utils.checkpoint.checkpoint(self.vdc, x) if self.use_vk else torch.zeros_like(x)
+        # If flags are off, we output zeros for that branch
+        cdc_out = self.cdc(x) if self.use_ck else torch.zeros_like(x)
+        hdc_out = self.hdc(x) if self.use_hk else torch.zeros_like(x)
+        vdc_out = self.vdc(x) if self.use_vk else torch.zeros_like(x)
 
-        # Fuse
-        edge_feats = torch.cat([cdc_out, hdc_out, vdc_out], dim=1)
-        return self.fusion(edge_feats)
+        edge_feats = torch.cat([cdc_out, hdc_out, vdc_out], dim=1)  # [B, 3C, H, W]
+        return self.fusion(edge_feats)                              # [B, C, H, W]
 
 
-########################################################################
+###############################################################################
 # 2. SCAttention
-########################################################################
+###############################################################################
 class SCAttention(nn.Module):
     """
-    Attention with channel + spatial + edge enhancement.
+    Self-Attention combining channel-wise and spatial attention, plus edge enhancement.
     """
     def __init__(self, channels, reduction=8):
         super(SCAttention, self).__init__()
@@ -102,12 +206,10 @@ class SCAttention(nn.Module):
         self.channel_gate = nn.Sequential(
             nn.AdaptiveAvgPool2d(1),
             nn.LayerNorm([channels, 1, 1]),
-            nn.Conv2d(channels, channels//reduction, 1),
+            nn.Conv2d(channels, channels//reduction, kernel_size=1),
             nn.GELU(),
-            nn.Conv2d(channels//reduction, channels, 1)
+            nn.Conv2d(channels//reduction, channels, kernel_size=1)
         )
-
-        # For normalizing channel gate output
         self.layer_norm = nn.LayerNorm([channels, 1, 1])
 
         # Spatial attention
@@ -117,14 +219,14 @@ class SCAttention(nn.Module):
             nn.Sigmoid()
         )
 
-        # Edge enhancement
+        # Edge-like enhancement
         self.edge_conv = nn.Sequential(
             nn.Conv2d(channels, channels, kernel_size=3, padding=1, groups=channels),
             nn.InstanceNorm2d(channels),
             nn.GELU()
         )
 
-        # Fuse (dropout for regularization)
+        # Final fusion
         self.fusion = nn.Sequential(
             nn.Conv2d(channels * 2, channels, kernel_size=1),
             nn.InstanceNorm2d(channels),
@@ -134,14 +236,14 @@ class SCAttention(nn.Module):
     def forward(self, x):
         B, C, H, W = x.shape
 
-        # Channel attention
-        c_att = self.channel_gate(x)           # shape (B, C, 1, 1)
-        c_att = self.layer_norm(c_att)         # layernorm
-        channel_enhanced = x * c_att.sigmoid() # broadcast along H,W
+        # Channel attention => [B, C, 1, 1]
+        c_att = self.channel_gate(x)
+        c_att = self.layer_norm(c_att)
+        channel_enhanced = x * c_att.sigmoid()
 
-        # Spatial attention (avg + max across channel dim)
+        # Spatial attention => [B, 1, H, W]
         avg_out = torch.mean(x, dim=1, keepdim=True)
-        max_out = torch.amax(x, dim=1, keepdim=True)
+        max_out, _ = torch.max(x, dim=1, keepdim=True)
         s_in = torch.cat([avg_out, max_out], dim=1)
         s_att = self.spatial_gate(s_in)
         spatial_enhanced = x * s_att
@@ -149,24 +251,37 @@ class SCAttention(nn.Module):
         # Edge
         edge_enhanced = self.edge_conv(x)
 
-        # Combine channel & spatial
+        # Combine channel & spatial => [B, 2C, H, W]
         combined = torch.cat([channel_enhanced, spatial_enhanced], dim=1)
-        fused = self.fusion(combined) + edge_enhanced
+        fused = self.fusion(combined) + edge_enhanced  # => [B, C, H, W]
         return fused
 
 
-########################################################################
+###############################################################################
 # 3. SCDecoderBlock
-########################################################################
+###############################################################################
 class SCDecoderBlock(nn.Module):
     """
-    Decoder block with upsampling, skip-connection, attention, and final conv.
+    Decoder block that can optionally use CGAFusion or old skip+cat fusion,
+    and optionally apply attention at the decoder stage.
     """
-    def __init__(self, in_channels, skip_channels, out_channels):
+    def __init__(
+        self,
+        in_channels,         # Channels of the upsampled feature
+        skip_channels,       # Channels from the skip connection
+        out_channels,        # Output channels after the final conv
+        use_cgafusion=True,  # Whether to apply CGAFusion or simple cat
+        use_attention_dec=True
+    ):
         super(SCDecoderBlock, self).__init__()
 
+        self.use_cgafusion = use_cgafusion
+        self.use_attention_dec = use_attention_dec
+
+        # Normalize skip
         self.skip_norm = nn.InstanceNorm2d(skip_channels)
 
+        # Upsample pipeline for 'x'
         self.upsample = nn.Sequential(
             nn.Upsample(scale_factor=2, mode='bilinear', align_corners=False),
             nn.Conv2d(in_channels, in_channels, kernel_size=3, padding=1),
@@ -174,16 +289,38 @@ class SCDecoderBlock(nn.Module):
             nn.GELU()
         )
 
+        if self.use_cgafusion:
+            # CGAFusion requires both features to have the same channels => in_channels
+            if skip_channels != in_channels:
+                self.skip_align = nn.Conv2d(skip_channels, in_channels, kernel_size=1)
+            else:
+                self.skip_align = nn.Identity()
+
+            # CGAFusion (channel = in_channels)
+            self.fusion = CGAFusion(dim=in_channels, reduction=8)
+            mid_channels = in_channels
+        else:
+            # Old skip+cat approach => concatenates [in_channels + skip_channels]
+            self.skip_align = nn.Identity()  # Not needed
+            self.fusion = None
+            mid_channels = in_channels + skip_channels
+
+        # Refine
         self.refine = nn.Sequential(
-            nn.Conv2d(in_channels + skip_channels, in_channels + skip_channels, kernel_size=1),
-            nn.InstanceNorm2d(in_channels + skip_channels),
+            nn.Conv2d(mid_channels, mid_channels, kernel_size=1),
+            nn.InstanceNorm2d(mid_channels),
             nn.GELU()
         )
 
-        self.attention = SCAttention(in_channels + skip_channels)
+        # Optional attention in the decoder
+        if self.use_attention_dec:
+            self.attention = SCAttention(mid_channels)
+        else:
+            self.attention = nn.Identity()
 
+        # Final conv => [B, out_channels, H, W]
         self.conv = nn.Sequential(
-            nn.Conv2d(in_channels + skip_channels, out_channels, kernel_size=3, padding=1),
+            nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1),
             nn.InstanceNorm2d(out_channels),
             nn.GELU(),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
@@ -192,32 +329,42 @@ class SCDecoderBlock(nn.Module):
         )
 
     def forward(self, x, skip):
+        # 1) Normalize skip
         skip = self.skip_norm(skip)
-        x = torch.utils.checkpoint.checkpoint(self.upsample, x)
 
-        # Merge skip
-        x = torch.cat([x, skip], dim=1)
+        # 2) Upsample x => [B, in_channels, H, W]
+        x = self.upsample(x)
 
-        # Refine
-        x = self.refine(x)
+        if self.use_cgafusion:
+            # Align skip => [B, in_channels, H, W]
+            skip = self.skip_align(skip)
+            # CGAFusion => [B, in_channels, H, W]
+            fused = self.fusion(x, skip)
+        else:
+            # Old approach => simply cat => [B, in_channels + skip_channels, H, W]
+            fused = torch.cat([x, skip], dim=1)
 
-        # Attention
+        # Refine => [B, mid_channels, H, W]
+        x = self.refine(fused)
+        # Decoder attention
         x = self.attention(x)
+        # Final conv => [B, out_channels, H, W]
+        x = self.conv(x)
+        return x
 
-        # Final conv
-        return self.conv(x)
 
-
-########################################################################
+###############################################################################
 # 4. SCEncoderBlock
-########################################################################
+###############################################################################
 class SCEncoderBlock(nn.Module):
     """
-    Encoder block with edge detection + attention + conv.
+    Encoder block with optional EdgeDetection + optional SCAttention + conv layers.
     """
-    def __init__(self, in_channels, out_channels, use_edge_module=True, use_attention_module=True):
+    def __init__(self, in_channels, out_channels,
+                 use_edge_module=True,
+                 use_attention_module=True,
+                 use_ck=True, use_hk=True, use_vk=True):
         super(SCEncoderBlock, self).__init__()
-
         self.use_edge_module = use_edge_module
         self.use_attention_module = use_attention_module
 
@@ -228,9 +375,19 @@ class SCEncoderBlock(nn.Module):
             nn.GELU()
         )
 
-        # Edge detection + attention
-        self.edge_detect = SCEdgeDetectionModule(out_channels) if use_edge_module else nn.Identity()
-        self.attention   = SCAttention(out_channels) if use_attention_module else nn.Identity()
+        # Edge detection
+        if self.use_edge_module:
+            self.edge_detect = SCEdgeDetectionModule(
+                out_channels, use_ck=use_ck, use_hk=use_hk, use_vk=use_vk
+            )
+        else:
+            self.edge_detect = nn.Identity()
+
+        # Attention
+        if self.use_attention_module:
+            self.attention = SCAttention(out_channels)
+        else:
+            self.attention = nn.Identity()
 
         # Second conv
         self.conv2 = nn.Sequential(
@@ -239,7 +396,7 @@ class SCEncoderBlock(nn.Module):
             nn.GELU()
         )
 
-        # Skip connection if channels differ
+        # If in/out differ, we add a 1x1 to unify for the residual
         if in_channels != out_channels:
             self.skip_conv = nn.Sequential(
                 nn.Conv2d(in_channels, out_channels, kernel_size=1),
@@ -251,46 +408,50 @@ class SCEncoderBlock(nn.Module):
         self.dropout = nn.Dropout(0.1)
 
     def forward(self, x):
+        # First conv
         out = self.conv1(x)
 
-        # Edge + attention (checkpointing)
-        e_feats = torch.utils.checkpoint.checkpoint(self.edge_detect, out) if not isinstance(self.edge_detect, nn.Identity) else torch.zeros_like(out)
-        a_feats = torch.utils.checkpoint.checkpoint(self.attention, out)   if not isinstance(self.attention, nn.Identity) else torch.zeros_like(out)
+        # Edge + attention
+        e_feats = self.edge_detect(out) if self.use_edge_module else torch.zeros_like(out)
+        a_feats = self.attention(out)   if self.use_attention_module else torch.zeros_like(out)
         out = out + e_feats + a_feats
 
         out = self.dropout(out)
-
-        # Second conv
         out = self.conv2(out)
 
-        # Residual
+        # Residual skip
         skip = self.skip_conv(x)
         out = out + skip
-
         return out
+
+###############################################################################
+# 5. Weight Initialization
+###############################################################################
 def init_model_weights(m):
     if isinstance(m, nn.Conv2d):
         nn.init.kaiming_normal_(m.weight, mode='fan_out')
         if m.bias is not None:
             nn.init.zeros_(m.bias)
 
-########################################################################
-# 5. SCBackbone
-########################################################################
+###############################################################################
+# 6. SCBackbone
+###############################################################################
 class SCBackbone(nn.Module):
     """
-    Full Enhanced HRNet-like backbone with 3 encoders, bottleneck, 3 decoders.
-    We produce a final image with Tanh, plus an intermediate feature (featrueHR).
+    sjsbjsb
     """
-    def __init__(self, in_ch=3, base_ch=64, use_edge_module=True, use_attention_module=True,
-                 use_ck=True, use_hk=True, use_vk=True, init_weights=True):
+    def __init__(self,
+                 in_ch=3,
+                 base_ch=64,
+                 use_edge_module=True,
+                 use_attention_module=True,
+                 use_ck=True,
+                 use_hk=True,
+                 use_vk=True,
+                 use_cgafusion=True,
+                 use_attention_dec=True,
+                 init_weights=True):
         super(SCBackbone, self).__init__()
-
-        self.use_edge_module = use_edge_module
-        self.use_attention_module = use_attention_module
-        self.use_ck = use_ck
-        self.use_hk = use_hk
-        self.use_vk = use_vk
 
         self.init_conv = nn.Sequential(
             nn.Conv2d(in_ch, base_ch, kernel_size=7, padding=3),
@@ -301,29 +462,48 @@ class SCBackbone(nn.Module):
             nn.GELU()
         )
 
-        # Encoders
-        self.encoder1 = SCEncoderBlock(base_ch, base_ch, use_edge_module, use_attention_module)
+        # ----------------- Encoders -----------------
+        self.encoder1 = SCEncoderBlock(base_ch, base_ch,
+                                       use_edge_module=use_edge_module,
+                                       use_attention_module=use_attention_module,
+                                       use_ck=use_ck, use_hk=use_hk, use_vk=use_vk)
         self.down1 = nn.Sequential(nn.MaxPool2d(2), nn.Dropout(0.1))
 
-        self.encoder2 = SCEncoderBlock(base_ch, base_ch * 2, use_edge_module, use_attention_module)
+        self.encoder2 = SCEncoderBlock(base_ch, base_ch * 2,
+                                       use_edge_module=use_edge_module,
+                                       use_attention_module=use_attention_module,
+                                       use_ck=use_ck, use_hk=use_hk, use_vk=use_vk)
         self.down2 = nn.Sequential(nn.MaxPool2d(2), nn.Dropout(0.1))
 
-        self.encoder3 = SCEncoderBlock(base_ch * 2, base_ch * 4, use_edge_module, use_attention_module)
+        self.encoder3 = SCEncoderBlock(base_ch * 2, base_ch * 4,
+                                       use_edge_module=use_edge_module,
+                                       use_attention_module=use_attention_module,
+                                       use_ck=use_ck, use_hk=use_hk, use_vk=use_vk)
         self.down3 = nn.Sequential(nn.MaxPool2d(2), nn.Dropout(0.1))
 
-        # Bottleneck
+        # --------------- Bottleneck ---------------
         self.bottleneck = nn.Sequential(
-            SCEncoderBlock(base_ch * 4, base_ch * 8, use_edge_module, use_attention_module),
+            SCEncoderBlock(base_ch * 4, base_ch * 8,
+                           use_edge_module=use_edge_module,
+                           use_attention_module=use_attention_module,
+                           use_ck=use_ck, use_hk=use_hk, use_vk=use_vk),
             SCAttention(base_ch * 8),
             nn.Dropout(0.2)
         )
 
-        # Decoders
-        self.decoder3 = SCDecoderBlock(base_ch * 8, base_ch * 4, base_ch * 4)
-        self.decoder2 = SCDecoderBlock(base_ch * 4, base_ch * 2, base_ch * 2)
-        self.decoder1 = SCDecoderBlock(base_ch * 2, base_ch, base_ch)
+        # ----------------- Decoders -----------------
+        # Use SCDecoderBlock with the new toggles
+        self.decoder3 = SCDecoderBlock(base_ch * 8, base_ch * 4, base_ch * 4,
+                                       use_cgafusion=use_cgafusion,
+                                       use_attention_dec=use_attention_dec)
+        self.decoder2 = SCDecoderBlock(base_ch * 4, base_ch * 2, base_ch * 2,
+                                       use_cgafusion=use_cgafusion,
+                                       use_attention_dec=use_attention_dec)
+        self.decoder1 = SCDecoderBlock(base_ch * 2, base_ch, base_ch,
+                                       use_cgafusion=use_cgafusion,
+                                       use_attention_dec=use_attention_dec)
 
-        # Final
+        # Final output
         self.final = nn.Sequential(
             nn.Conv2d(base_ch, base_ch, kernel_size=3, padding=1),
             nn.InstanceNorm2d(base_ch),
@@ -331,18 +511,15 @@ class SCBackbone(nn.Module):
             nn.Conv2d(base_ch, in_ch, kernel_size=3, padding=1),
             nn.Sigmoid()
         )
+
         if init_weights:
             self.apply(init_model_weights)
 
     def forward(self, x):
-        """
-        Return: (featrueHR, finalImage)
-           - featrueHR = final features (we choose the last decoder's feature)
-           - finalImage = Tanh-ed image
-        """
-        # ============ Encoder path ============
+        # 1) Initial convolution
         x0 = self.init_conv(x)
 
+        # 2) Encoder stages
         s1 = self.encoder1(x0)
         x1 = self.down1(s1)
 
@@ -352,64 +529,63 @@ class SCBackbone(nn.Module):
         s3 = self.encoder3(x2)
         x3 = self.down3(s3)
 
-        # bottleneck
-        b = torch.utils.checkpoint.checkpoint(self.bottleneck, x3)
+        # 3) Bottleneck
+        b = self.bottleneck(x3)
 
-        # ============ Decoder path ============
+        # 4) Decoder stages
         d3 = self.decoder3(b, s3)
         d2 = self.decoder2(d3, s2)
         d1 = self.decoder1(d2, s1)
 
-        # final output
+        # 5) Final output
         out = self.final(d1)
-        # print(f"############ out and d1#########: {out.dtype}, {d1.dtype}")
-        # We define featrueHR = d1, the last decoder's feature map prior to final conv
         return d1, out
 
 
-########################################################################
-# 6. HRBranch
-########################################################################
+###############################################################################
+# 7. EdgeModel_V1
+###############################################################################
 class EdgeModel_V1(nn.Module):
     """
-    Upgraded 'ScaterringBranch' that uses our new SCBackbone
-    for advanced haze removal + scattering correction.
-
-    The forward(...) MUST return: (featrueHR, hazeRemoval)
-    to maintain compatibility with HRNet.py usage:
-        featrueHR, hazeRemoval = self.hfBranch(input)
+    Example wrapper model that uses SCBackbone for underwater/haze correction.
     """
-    def __init__(self, in_channels=3, base_channels=64, use_edge_module=True, use_attention_module=True,
-                 use_ck=True, use_hk=True, use_vk=True, init_weights=True):
+    def __init__(self,
+                 in_channels=3,
+                 base_channels=64,
+                 use_edge_module=True,
+                 use_attention_module=True,
+                 use_ck=True, use_hk=True, use_vk=True,
+                 use_cgafusion=True, use_attention_dec=True,
+                 init_weights=True):
         super(EdgeModel_V1, self).__init__()
-        # Instantiating our new backbone
-        self.ch_in = 3
-        self.down_depth = 2        
-        self.backbone = SCBackbone(in_ch=self.ch_in,
-                                   base_ch=base_channels,
-                                   use_edge_module=use_edge_module,
-                                   use_attention_module=use_attention_module,
-                                   use_ck=use_ck,
-                                   use_hk=use_hk,
-                                   use_vk=use_vk,
-                                   init_weights=init_weights)
 
-    def forward(self, input):
+        self.backbone = SCBackbone(
+            in_ch=in_channels,
+            base_ch=base_channels,
+            use_edge_module=use_edge_module,
+            use_attention_module=use_attention_module,
+            use_ck=use_ck,
+            use_hk=use_hk,
+            use_vk=use_vk,
+            use_cgafusion=use_cgafusion,
+            use_attention_dec=use_attention_dec,
+            init_weights=init_weights
+        )
+
+    def forward(self, x):
         """
-        input: (B, 3, H, W)  # if you're using RGB
-        returns: (featrueHR, hazeRemoval)
+        Returns just the final 'restored' image (hazeRemoval), or any name you prefer.
         """
-        featrueHR, hazeRemoval = self.backbone(input)
-        out = hazeRemoval
+        _, out = self.backbone(x)
         return out
-    
-    def _get_featurehr(self, input):
+
+    def _get_featurehr(self, x):
         """
-        input: (B, 3, H, W)  # if you're using RGB 
-        returns: (featrueHR)
+        If you need the decoder features for something else, call this method.
         """
-        featrueHR, hazeRemoval = self.backbone(input)
+        featrueHR, _ = self.backbone(x)
         return featrueHR
+
     
 # def test_model():
 #     model = EdgeModel().to('cuda')
@@ -590,7 +766,7 @@ def test_scedgedetectionmodule():
 
 if __name__ == '__main__':
     test_scbackbone()
-    test_scencoderblock()
-    test_scdecoderblock()
-    test_scattention()
-    test_scedgedetectionmodule()
+    # test_scencoderblock()
+    # # test_scdecoderblock()
+    # test_scattention()
+    # test_scedgedetectionmodule()

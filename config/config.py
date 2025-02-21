@@ -39,6 +39,8 @@ class Config(object):
         self._C.MODEL.EDGE_HK = True
         self._C.MODEL.EDGE_CK = True
         self._C.MODEL.INIT_WEIGHTS = True
+        self._C.MODEL.CGF = True
+        self._C.MODEL.DEATTENTION = True
         # NEW: Specify default model type
         self._C.MODEL.NAME = 'version3'
         self._C.MODEL.DATASET_NAME = 'UIEB'
