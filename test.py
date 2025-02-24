@@ -1,5 +1,7 @@
-import json
 import warnings
+warnings.simplefilter("ignore", FutureWarning)
+warnings.simplefilter("ignore", UserWarning)
+import json
 import os
 import sys
 import torchvision
@@ -19,7 +21,7 @@ from models import create_model
 from utils import seed_everything, load_checkpoint
 import torch
 
-warnings.filterwarnings('ignore')
+# warnings.filterwarnings('ignore')
 
 
 def test():
@@ -49,7 +51,7 @@ def test():
                             drop_last=False, pin_memory=True) if val_dataset else []
 
     # Model & Metrics
-    model = create_model(opt.MODEL.NAME)
+    model = create_model(opt)
 
     weight_path = opt.TESTING.WEIGHT
     if not weight_path or not os.path.exists(weight_path):
