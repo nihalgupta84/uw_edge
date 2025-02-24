@@ -44,7 +44,7 @@ The following paired datasets are available (processed and split into a **90/10*
 - **LSUI**
 - **UIEB**
 
-**🔗 Download:** [Google Drive Link]([#](https://drive.google.com/drive/folders/1Qn9jf2gtsuLtHZASm-Hms7-HVL1m2OJp?usp=sharing))
+**🔗 Download:** [Google Drive Link]([https://drive.google.com/drive/folders/1Qn9jf2gtsuLtHZASm-Hms7-HVL1m2OJp?usp=sharing])
 
 ### **📌 Dataset Structure**
 We provide **two types** of dataset organizations:
