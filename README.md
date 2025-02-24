@@ -44,7 +44,7 @@ The following paired datasets are available (processed and split into a **90/10*
 - **LSUI**
 - **UIEB**
 
-**🔗 Download:** [Google Drive Link](#) _(Replace with actual link)_
+**🔗 Download:** [Google Drive Link](https://drive.google.com/drive/folders/1Qn9jf2gtsuLtHZASm-Hms7-HVL1m2OJp?usp=sharing)
 
 ### **📌 Dataset Structure**
 We provide **two types** of dataset organizations:
@@ -87,8 +87,18 @@ python train.py --config_yaml=config.yml MODEL.NAME edge_v1 OPTIM.BATCH_SIZE 8
 ## **🧪 Testing**
 ### **📷 Run Testing with Reference Images**
 ```bash
-python test.py --config_yaml=config.yml TRAINING.TARGET ''
+python test.py --config_yaml config.yml MODEL.NAME edge_v1 MODEL.DATASET_NAME "paired or unpai MODEL.SESSION trained_on_uieb TESTING.WEIGHT "checkpoint path" TESTING.VAL_DIR "testing data path"
 ```
+### **📷 Run Testing with No Reference Images**
+
+```bash
+python test.py --config_yaml config.yml MODEL.NAME edge_v1 MODEL.DATASET_NAME "paired or unpai MODEL.SESSION trained_on_uieb TESTING.WEIGHT "checkpoint path" TESTING.VAL_DIR "testing data path"  TESTING.INPUT "" TESTING.TARGET ""
+```
+
+### **📥 Download Checkpoints**
+Download the checkpoints from the provided link and place them in a folder named `weights`. Provide the path of the checkpoints using `TESTING.WEIGHT`. Checkpoints will be provided for each dataset.
+
+**🔗 Download Checkpoints:** [Google Drive Link](#)
 
 ---
 
