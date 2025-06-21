@@ -26,6 +26,7 @@ from metrics.uiqm import batch_uiqm
 from torchsampler import ImbalancedDatasetSampler
 
 from models import *
+from models import get_model
 from models.edge_model import EdgeModel
 from utils import *
 import wandb
@@ -44,7 +45,12 @@ def is_online():
     
 
 def main():
+
     parser = argparse.ArgumentParser()
+    parser.add_argument('--model', type=str.lower, 
+                   choices=['edge', 'lied'],  # Updated with new option
+                   default='lied',
+                   help='Model architecture selection')
     parser.add_argument('--config_yaml', type=str, default='config.yml')
     parser.add_argument('--resume', action='store_true')  # Change to action flag
     parser.add_argument('config_override', nargs='*')
@@ -61,7 +67,7 @@ def main():
 
     accelerator = Accelerator(log_with='wandb') if opt.OPTIM.WANDB else Accelerator()
 
-    model = EdgeModel()
+    model = get_model(args.model, config)
     if accelerator.is_local_main_process:
         try:
             if is_online():

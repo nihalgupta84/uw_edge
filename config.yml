@@ -1,9 +1,15 @@
 VERBOSE: True
 
-MODEL:
-  SESSION: 'evup'
-  INPUT: 'raw'
-  TARGET: 'ref'
+MODELS:
+  EDGE:  # Changed from 'evup' to match what the code expects
+    SESSION: 'edge'
+    INPUT: 'raw'
+    TARGET: 'ref'
+    
+  LIED:
+    SESSION: 'lied'
+    INPUT: 'raw'
+    TARGET: 'ref'
 
 # Optimization arguments.
 OPTIM:
